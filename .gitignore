@@ -10,3 +10,6 @@ dist/
 coverage/
 build/
 *.log
+*.db
+*.db-journal
+*.tsbuildinfo
