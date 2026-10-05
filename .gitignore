@@ -12,3 +12,4 @@ build/
 *.log
 *.db
 *.db-journal
+*.tsbuildinfo
