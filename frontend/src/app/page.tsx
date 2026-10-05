@@ -1,52 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { fetchCompetitors, addCompetitor, deleteCompetitor } from '@/lib/api';
+import { useEffect } from 'react';
 import { AddCompetitorForm } from '@/components/competitors/AddCompetitorForm';
 import { CompetitorList } from '@/components/competitors/CompetitorList';
+import { useCompetitors } from '@/hooks/useCompetitors';
 
 export default function Home() {
-  const [competitors, setCompetitors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [adding, setAdding] = useState(false);
+  const { queries, mutations, setError } = useCompetitors();
 
   useEffect(() => {
-    loadCompetitors();
-  }, []);
-
-  async function loadCompetitors() {
-    try {
-      const data = await fetchCompetitors();
-      setCompetitors(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleAdd(url: string) {
-    setAdding(true);
-    setError('');
-    try {
-      await addCompetitor(url);
-      await loadCompetitors();
-    } catch (err: any) {
-      setError(err.message || err.toString());
-    } finally {
-      setAdding(false);
-    }
-  }
+    queries.loadCompetitors();
+  }, [queries.loadCompetitors]);
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to remove this competitor?')) return;
-    try {
-      await deleteCompetitor(id);
-      await loadCompetitors();
-    } catch (err: any) {
-      setError(err.message);
-    }
+    await mutations.deleteCompetitorMutation(id);
   }
 
   return (
@@ -69,13 +37,13 @@ export default function Home() {
 
         <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-6 rounded-2xl shadow-sm mb-8 border border-gray-200/50 dark:border-zinc-800/50">
           <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Add New Competitor</h2>
-          <AddCompetitorForm onAdd={handleAdd} adding={adding} />
-          {error && (
+          <AddCompetitorForm onAdd={mutations.addCompetitorMutation} adding={mutations.adding} />
+          {queries.error && (
             <div className="mt-4 flex items-center gap-2 text-red-600 dark:text-red-400 text-sm font-medium bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-              {error}
+              {queries.error}
             </div>
           )}
         </div>
@@ -84,12 +52,12 @@ export default function Home() {
           <div className="px-6 py-5 border-b border-gray-100 dark:border-zinc-800/50 flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Tracked URLs</h2>
             <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-              {competitors.length} Total
+              {queries.competitors.length} Total
             </span>
           </div>
           <CompetitorList 
-            competitors={competitors} 
-            loading={loading} 
+            competitors={queries.competitors} 
+            loading={queries.loading} 
             onDelete={handleDelete} 
           />
         </div>
