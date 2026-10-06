@@ -26,3 +26,17 @@ export async function deleteCompetitor(id: string) {
   if (!res.ok) throw new Error('Failed to delete competitor');
   return res.json();
 }
+
+export async function triggerCollection(id: string) {
+  const res = await fetch(`${API_URL}/competitors/${id}/snapshots/collect`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('Failed to trigger collection');
+  return res.json();
+}
+
+export async function getSnapshots(id: string) {
+  const res = await fetch(`${API_URL}/competitors/${id}/snapshots`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch snapshots');
+  return res.json();
+}

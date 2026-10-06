@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react';
-import { fetchCompetitors, addCompetitor as apiAddCompetitor, deleteCompetitor as apiDeleteCompetitor } from '@/lib/api';
+import { fetchCompetitors, addCompetitor as apiAddCompetitor, deleteCompetitor as apiDeleteCompetitor, triggerCollection as apiTriggerCollection, getSnapshots as apiGetSnapshots } from '@/lib/api';
 
 export function useCompetitors() {
   const [competitors, setCompetitors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [adding, setAdding] = useState(false);
+  const [collectingMap, setCollectingMap] = useState<Record<string, boolean>>({});
+  const [snapshotsMap, setSnapshotsMap] = useState<Record<string, any[]>>({});
 
   // === QUERIES (Read-only) ===
   const loadCompetitors = useCallback(async () => {
@@ -16,6 +18,15 @@ export function useCompetitors() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const loadSnapshots = useCallback(async (id: string) => {
+    try {
+      const data = await apiGetSnapshots(id);
+      setSnapshotsMap(prev => ({ ...prev, [id]: data }));
+    } catch (err: any) {
+      setError(err.message);
     }
   }, []);
 
@@ -42,19 +53,35 @@ export function useCompetitors() {
     }
   };
 
+  const triggerCollectionMutation = async (id: string) => {
+    setCollectingMap(prev => ({ ...prev, [id]: true }));
+    setError('');
+    try {
+      await apiTriggerCollection(id);
+      await loadSnapshots(id);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setCollectingMap(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
   return {
     queries: {
       competitors,
       loading,
       error,
       loadCompetitors,
+      loadSnapshots,
+      snapshotsMap,
     },
     mutations: {
       addCompetitorMutation,
       deleteCompetitorMutation,
+      triggerCollectionMutation,
       adding,
+      collectingMap,
     },
-    // Expose root error setter if components need to clear it
     setError,
   };
 }

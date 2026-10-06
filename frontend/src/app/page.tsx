@@ -58,7 +58,11 @@ export default function Home() {
           <CompetitorList 
             competitors={queries.competitors} 
             loading={queries.loading} 
-            onDelete={handleDelete} 
+            onDelete={handleDelete}
+            onCollect={mutations.triggerCollectionMutation}
+            collectingMap={mutations.collectingMap}
+            snapshotsMap={queries.snapshotsMap}
+            loadSnapshots={queries.loadSnapshots}
           />
         </div>
       </main>
