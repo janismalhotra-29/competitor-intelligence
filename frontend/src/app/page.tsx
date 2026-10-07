@@ -37,7 +37,7 @@ export default function Home() {
 
         <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-6 rounded-2xl shadow-sm mb-8 border border-gray-200/50 dark:border-zinc-800/50">
           <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Add New Competitor</h2>
-          <AddCompetitorForm onAdd={mutations.addCompetitorMutation} adding={mutations.adding} />
+          <AddCompetitorForm submitCompetitor={mutations.addCompetitorMutation} adding={mutations.adding} />
           {queries.error && (
             <div className="mt-4 flex items-center gap-2 text-red-600 dark:text-red-400 text-sm font-medium bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -58,7 +58,11 @@ export default function Home() {
           <CompetitorList 
             competitors={queries.competitors} 
             loading={queries.loading} 
-            onDelete={handleDelete} 
+            onDelete={handleDelete}
+            onCollect={mutations.triggerCollectionMutation}
+            collectingMap={mutations.collectingMap}
+            snapshotsMap={queries.snapshotsMap}
+            loadSnapshots={queries.loadSnapshots}
           />
         </div>
       </main>

@@ -8,7 +8,20 @@ datasource db {
 }
 
 model Competitor {
-  id        String   @id @default(uuid())
-  url       String   @unique
-  createdAt DateTime @default(now())
+  id        String     @id @default(uuid())
+  url       String     @unique
+  createdAt DateTime   @default(now())
+  snapshots Snapshot[]
+}
+
+model Snapshot {
+  id           String     @id @default(uuid())
+  competitorId String
+  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  url          String
+  pageTitle    String?
+  extractedText String?
+  metadata     String?
+  capturedAt   DateTime   @default(now())
+  status       String     @default("SUCCESS")
 }

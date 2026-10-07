@@ -1,22 +1,22 @@
 import { FormEvent, useState } from 'react';
 
 interface Props {
-  onAdd: (url: string) => Promise<void>;
+  submitCompetitor: (url: string) => Promise<void>;
   adding: boolean;
 }
 
-export function AddCompetitorForm({ onAdd, adding }: Props) {
+export function AddCompetitorForm({ submitCompetitor, adding }: Props) {
   const [url, setUrl] = useState('');
 
-  async function handleSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!url) return;
-    await onAdd(url);
+    await submitCompetitor(url);
     setUrl('');
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-3">
+    <form onSubmit={onSubmit} className="flex gap-3">
       <div className="relative flex-1">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
           <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
