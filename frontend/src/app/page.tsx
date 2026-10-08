@@ -63,6 +63,8 @@ export default function Home() {
             collectingMap={mutations.collectingMap}
             snapshotsMap={queries.snapshotsMap}
             loadSnapshots={queries.loadSnapshots}
+            changesMap={queries.changesMap}
+            loadChanges={queries.loadChanges}
           />
         </div>
       </main>

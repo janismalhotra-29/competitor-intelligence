@@ -14,6 +14,13 @@ type Snapshot = {
   capturedAt: string;
 };
 
+type Change = {
+  id: string;
+  hasChanges: boolean;
+  diffSummary: string | null;
+  detectedAt: string;
+};
+
 interface Props {
   competitors: Competitor[];
   loading: boolean;
@@ -22,16 +29,21 @@ interface Props {
   collectingMap: Record<string, boolean>;
   snapshotsMap: Record<string, Snapshot[]>;
   loadSnapshots: (id: string) => void;
+  changesMap?: Record<string, Change[]>;
+  loadChanges?: (id: string) => void;
 }
 
-export function CompetitorList({ competitors, loading, onDelete, onCollect, collectingMap, snapshotsMap, loadSnapshots }: Props) {
+export function CompetitorList({ competitors, loading, onDelete, onCollect, collectingMap, snapshotsMap, loadSnapshots, changesMap, loadChanges }: Props) {
   useEffect(() => {
     competitors.forEach(comp => {
       if (!snapshotsMap[comp.id]) {
         loadSnapshots(comp.id);
       }
+      if (loadChanges && (!changesMap || !changesMap[comp.id])) {
+        loadChanges(comp.id);
+      }
     });
-  }, [competitors, loadSnapshots, snapshotsMap]);
+  }, [competitors, loadSnapshots, snapshotsMap, loadChanges, changesMap]);
 
   if (loading) return <div className="p-6 text-gray-500 text-center">Loading competitors...</div>;
   if (competitors.length === 0) return <div className="p-6 text-gray-500 text-center">No competitors tracked yet.</div>;
@@ -41,6 +53,8 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
       {competitors.map((comp) => {
         const snapshots = snapshotsMap[comp.id] || [];
         const latestSnapshot = snapshots.length > 0 ? snapshots[0] : null;
+        const changes = (changesMap && changesMap[comp.id]) || [];
+        const latestChange = changes.length > 0 ? changes[0] : null;
         const isCollecting = collectingMap[comp.id];
 
         return (
@@ -63,6 +77,11 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
                     <span className="text-xs text-gray-500">
                       Added {new Date(comp.createdAt).toLocaleDateString()}
                     </span>
+                    {latestChange && latestChange.hasChanges && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 ml-2">
+                        Changes Detected
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -100,6 +119,19 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
                   <div><span className="text-gray-400 dark:text-gray-500">Captured:</span> {new Date(latestSnapshot.capturedAt).toLocaleString()}</div>
                 </div>
               </div>
+            )}
+
+            {latestChange && latestChange.hasChanges && (
+               <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg text-sm border border-yellow-100 dark:border-yellow-900/30">
+                 <div className="font-semibold text-yellow-800 dark:text-yellow-500 mb-1">Difference Summary</div>
+                 <div className="text-yellow-700 dark:text-yellow-400/90">{latestChange.diffSummary}</div>
+               </div>
+            )}
+            
+            {latestChange && !latestChange.hasChanges && (
+               <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm border border-gray-100 dark:border-gray-700/50">
+                 <div className="text-gray-500 dark:text-gray-400">No textual changes detected in the last scan.</div>
+               </div>
             )}
           </div>
         );

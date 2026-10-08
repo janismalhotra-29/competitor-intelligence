@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CrawlerService } from '../crawler/crawler.service.js';
+import { ChangeDetectionService } from '../change-detection/change-detection.service.js';
 
 @Injectable()
 export class SnapshotsService {
   constructor(
     private prisma: PrismaService,
-    private crawler: CrawlerService
+    private crawler: CrawlerService,
+    private changeDetection: ChangeDetectionService
   ) {}
 
   async triggerCollection(competitorId: string) {
@@ -20,7 +22,7 @@ export class SnapshotsService {
 
     const result = await this.crawler.crawlPublicPage(competitor.url);
 
-    return this.prisma.snapshot.create({
+    const snapshot = await this.prisma.snapshot.create({
       data: {
         competitorId,
         url: result.url,
@@ -31,6 +33,15 @@ export class SnapshotsService {
         capturedAt: result.capturedAt
       }
     });
+
+    if (snapshot.status === 'SUCCESS') {
+      // Run change detection asynchronously so we don't block the API response
+      this.changeDetection.detectChangesForNewSnapshot(snapshot.id, competitorId).catch(err => {
+        console.error('Change detection failed:', err);
+      });
+    }
+
+    return snapshot;
   }
 
   async getSnapshots(competitorId: string) {
