@@ -40,3 +40,9 @@ export async function getSnapshots(id: string) {
   if (!res.ok) throw new Error('Failed to fetch snapshots');
   return res.json();
 }
+
+export async function getChanges(id: string) {
+  const res = await fetch(`${API_URL}/competitors/${id}/changes`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch changes');
+  return res.json();
+}

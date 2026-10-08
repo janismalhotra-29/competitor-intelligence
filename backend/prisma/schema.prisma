@@ -12,6 +12,7 @@ model Competitor {
   url       String     @unique
   createdAt DateTime   @default(now())
   snapshots Snapshot[]
+  changes   Change[]
 }
 
 model Snapshot {
@@ -24,4 +25,15 @@ model Snapshot {
   metadata     String?
   capturedAt   DateTime   @default(now())
   status       String     @default("SUCCESS")
+}
+
+model Change {
+  id              String     @id @default(uuid())
+  competitorId    String
+  competitor      Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  oldSnapshotId   String?
+  newSnapshotId   String
+  hasChanges      Boolean    @default(false)
+  diffSummary     String?    // A brief summary of what changed
+  detectedAt      DateTime   @default(now())
 }
