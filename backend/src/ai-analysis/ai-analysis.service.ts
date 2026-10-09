@@ -1,6 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import OpenAI from 'openai';
+import { z } from 'zod';
+import { zodResponseFormat } from 'openai/helpers/zod';
+
+const AnalysisSchema = z.object({
+  analysis: z.string().describe("A concise, plain-English summary of what changed between the old and new text."),
+  significance: z.enum(["HIGH", "MEDIUM", "LOW", "NONE"]).describe("The business impact level of these changes.")
+});
 
 @Injectable()
 export class AiAnalysisService {
@@ -24,28 +31,28 @@ export class AiAnalysisService {
 
     if (this.openai) {
       try {
-        const response = await this.openai.chat.completions.create({
+        const response = await this.openai.beta.chat.completions.parse({
           model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
-              content: 'You are an expert business analyst. Compare the old text and new text of a competitor website. Identify meaningful changes (like pricing, features, branding). Ignore minor formatting or noise. Provide a concise, plain-English summary of what changed. Finally, specify a SIGNIFICANCE level on the last line exactly as: [SIGNIFICANCE: HIGH|MEDIUM|LOW|NONE].'
+              content: 'You are an expert business analyst. Compare the old text and new text of a competitor website. Identify meaningful changes (like pricing, features, branding). Ignore minor formatting or noise.'
             },
             {
               role: 'user',
               content: `OLD TEXT:\n${oldText}\n\nNEW TEXT:\n${newText}`
             }
-          ]
+          ],
+          response_format: zodResponseFormat(AnalysisSchema, 'analysis_result'),
         });
 
-        const reply = response.choices[0]?.message?.content || '';
+        const parsed = response.choices[0]?.message?.parsed;
         
-        const sigMatch = reply.match(/\[SIGNIFICANCE:\s*(HIGH|MEDIUM|LOW|NONE)\]/i);
-        if (sigMatch) {
-          significance = sigMatch[1].toUpperCase();
-          analysisText = reply.replace(/\[SIGNIFICANCE:\s*(HIGH|MEDIUM|LOW|NONE)\]/i, '').trim();
+        if (parsed) {
+          analysisText = parsed.analysis;
+          significance = parsed.significance;
         } else {
-          analysisText = reply;
+          analysisText = 'Failed to parse AI response.';
         }
       } catch (error) {
         this.logger.error('OpenAI API call failed', error);
