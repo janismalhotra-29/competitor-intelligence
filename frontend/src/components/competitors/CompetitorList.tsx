@@ -14,11 +14,19 @@ type Snapshot = {
   capturedAt: string;
 };
 
+type AiSummary = {
+  id: string;
+  analysis: string;
+  significance: string;
+  createdAt: string;
+};
+
 type Change = {
   id: string;
   hasChanges: boolean;
   diffSummary: string | null;
   detectedAt: string;
+  aiSummary?: AiSummary | null;
 };
 
 interface Props {
@@ -125,6 +133,28 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
                <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg text-sm border border-yellow-100 dark:border-yellow-900/30">
                  <div className="font-semibold text-yellow-800 dark:text-yellow-500 mb-1">Difference Summary</div>
                  <div className="text-yellow-700 dark:text-yellow-400/90">{latestChange.diffSummary}</div>
+                 
+                 {latestChange.aiSummary ? (
+                    <div className="mt-3 pt-3 border-t border-yellow-200 dark:border-yellow-800/50">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-blue-800 dark:text-blue-400">✨ AI Analysis</span>
+                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                          latestChange.aiSummary.significance === 'HIGH' ? 'bg-red-100 text-red-700' : 
+                          latestChange.aiSummary.significance === 'MEDIUM' ? 'bg-orange-100 text-orange-700' : 
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {latestChange.aiSummary.significance} IMPACT
+                        </span>
+                      </div>
+                      <div className="text-gray-700 dark:text-gray-300 italic whitespace-pre-wrap">
+                        {latestChange.aiSummary.analysis}
+                      </div>
+                    </div>
+                 ) : (
+                    <div className="mt-2 text-xs text-gray-500 italic flex items-center gap-1">
+                      <span className="animate-pulse">●</span> AI analyzing changes...
+                    </div>
+                 )}
                </div>
             )}
             

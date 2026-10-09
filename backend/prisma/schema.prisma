@@ -34,6 +34,16 @@ model Change {
   oldSnapshotId   String?
   newSnapshotId   String
   hasChanges      Boolean    @default(false)
-  diffSummary     String?    // A brief summary of what changed
+  diffSummary     String?
   detectedAt      DateTime   @default(now())
+  aiSummary       AiSummary?
+}
+
+model AiSummary {
+  id              String   @id @default(uuid())
+  changeId        String   @unique
+  change          Change   @relation(fields: [changeId], references: [id], onDelete: Cascade)
+  analysis        String   // The human-readable text from the LLM
+  significance    String   @default("UNKNOWN") // HIGH, MEDIUM, LOW, NONE, UNKNOWN
+  createdAt       DateTime @default(now())
 }

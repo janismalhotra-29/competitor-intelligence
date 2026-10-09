@@ -1,12 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as diff from 'diff';
+import { AiAnalysisService } from '../ai-analysis/ai-analysis.service.js';
 
 @Injectable()
 export class ChangeDetectionService {
   private readonly logger = new Logger(ChangeDetectionService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly aiAnalysis: AiAnalysisService
+  ) {}
 
   async detectChangesForNewSnapshot(newSnapshotId: string, competitorId: string) {
     this.logger.log(`Detecting changes for snapshot: ${newSnapshotId}`);
@@ -67,7 +71,7 @@ export class ChangeDetectionService {
     const diffSummary = `Detected ${addedCount} added block(s) and ${removedCount} removed block(s).`;
     this.logger.log(`Changes detected: ${diffSummary}`);
 
-    await this.prisma.change.create({
+    const change = await this.prisma.change.create({
       data: {
         competitorId,
         oldSnapshotId: previousSnapshot.id,
@@ -75,6 +79,11 @@ export class ChangeDetectionService {
         hasChanges: true,
         diffSummary,
       },
+    });
+
+    // Trigger AI Analysis in the background
+    this.aiAnalysis.analyzeChange(change.id, oldText, newText).catch(err => {
+      this.logger.error('Background AI analysis failed', err);
     });
   }
 }

@@ -9,7 +9,8 @@ export class ChangeDetectionController {
   async getChanges(@Param('competitorId') competitorId: string) {
     return this.prisma.change.findMany({
       where: { competitorId },
-      orderBy: { detectedAt: 'desc' }
+      orderBy: { detectedAt: 'desc' },
+      include: { aiSummary: true }
     });
   }
 }
