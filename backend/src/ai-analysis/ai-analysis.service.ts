@@ -31,7 +31,7 @@ export class AiAnalysisService {
 
     if (this.openai) {
       try {
-        const response = await this.openai.beta.chat.completions.parse({
+        const response = await this.openai.chat.completions.parse({
           model: 'gpt-4o-mini',
           messages: [
             {
