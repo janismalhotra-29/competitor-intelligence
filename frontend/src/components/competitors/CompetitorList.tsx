@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 type Competitor = {
   id: string;
@@ -53,6 +53,12 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
     });
   }, [competitors, loadSnapshots, snapshotsMap, loadChanges, changesMap]);
 
+  const [expandedHistory, setExpandedHistory] = useState<Record<string, boolean>>({});
+
+  const toggleHistory = (id: string) => {
+    setExpandedHistory(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   if (loading) return <div className="p-6 text-gray-500 text-center">Loading competitors...</div>;
   if (competitors.length === 0) return <div className="p-6 text-gray-500 text-center">No competitors tracked yet.</div>;
 
@@ -64,6 +70,7 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
         const changes = (changesMap && changesMap[comp.id]) || [];
         const latestChange = changes.length > 0 ? changes[0] : null;
         const isCollecting = collectingMap[comp.id];
+        const showHistory = expandedHistory[comp.id];
 
         return (
           <div key={comp.id} className="group flex flex-col p-4 bg-white dark:bg-zinc-800/80 border border-gray-100 dark:border-zinc-700/50 rounded-xl hover:shadow-md hover:border-blue-100 dark:hover:border-blue-900/30 transition-all">
@@ -103,6 +110,12 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
                   {isCollecting ? 'Collecting...' : 'Collect Snapshot'}
                 </button>
                 <button
+                  onClick={() => toggleHistory(comp.id)}
+                  className="text-sm px-3 py-1.5 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-700/50 dark:hover:bg-zinc-700 text-gray-600 dark:text-gray-300 rounded-lg transition-colors font-medium"
+                >
+                  {showHistory ? 'Hide History' : 'View History'}
+                </button>
+                <button
                   onClick={() => onDelete(comp.id)}
                   className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-all focus:opacity-100"
                   title="Delete competitor"
@@ -114,7 +127,7 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
               </div>
             </div>
 
-            {latestSnapshot && (
+            {latestSnapshot && !showHistory && (
               <div className="mt-4 pt-3 border-t border-gray-100 dark:border-zinc-700/50 flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Latest Snapshot</span>
@@ -129,7 +142,7 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
               </div>
             )}
 
-            {latestChange && latestChange.hasChanges && (
+            {latestChange && latestChange.hasChanges && !showHistory && (
                <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg text-sm border border-yellow-100 dark:border-yellow-900/30">
                  <div className="font-semibold text-yellow-800 dark:text-yellow-500 mb-1">Difference Summary</div>
                  <div className="text-yellow-700 dark:text-yellow-400/90">{latestChange.diffSummary}</div>
@@ -158,10 +171,62 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
                </div>
             )}
             
-            {latestChange && !latestChange.hasChanges && (
+            {latestChange && !latestChange.hasChanges && !showHistory && (
                <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm border border-gray-100 dark:border-gray-700/50">
                  <div className="text-gray-500 dark:text-gray-400">No textual changes detected in the last scan.</div>
                </div>
+            )}
+
+            {showHistory && (
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-700/50">
+                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">Change History</h4>
+                {changes.length === 0 ? (
+                  <div className="text-sm text-gray-500">No history available.</div>
+                ) : (
+                  <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 dark:before:via-zinc-700 before:to-transparent">
+                    {changes.map((change, index) => (
+                      <div key={change.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full border border-white dark:border-zinc-900 bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                          <div className={`w-2 h-2 rounded-full ${change.hasChanges ? 'bg-yellow-500' : 'bg-gray-400'}`}></div>
+                        </div>
+                        
+                        <div className="w-[calc(100%-2.5rem)] md:w-[calc(50%-1.5rem)] p-3 rounded-xl border border-gray-100 dark:border-zinc-700/50 bg-gray-50 dark:bg-zinc-800/50 shadow-sm">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{new Date(change.detectedAt).toLocaleString()}</span>
+                            {change.hasChanges ? (
+                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500">Changes</span>
+                            ) : (
+                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">No Changes</span>
+                            )}
+                          </div>
+                          
+                          {change.hasChanges && change.diffSummary && (
+                            <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{change.diffSummary}</div>
+                          )}
+                          
+                          {change.aiSummary && (
+                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-zinc-700/50">
+                              <div className="flex items-center gap-1 mb-1">
+                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">AI Analysis</span>
+                                <span className={`text-[9px] uppercase font-bold px-1 py-0.5 rounded ${
+                                  change.aiSummary.significance === 'HIGH' ? 'bg-red-100 text-red-700' : 
+                                  change.aiSummary.significance === 'MEDIUM' ? 'bg-orange-100 text-orange-700' : 
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {change.aiSummary.significance}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400 italic line-clamp-3 hover:line-clamp-none transition-all">
+                                {change.aiSummary.analysis}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         );

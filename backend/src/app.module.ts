@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -7,9 +8,19 @@ import { SnapshotsModule } from './snapshots/snapshots.module.js';
 import { CrawlerModule } from './crawler/crawler.module.js';
 import { ChangeDetectionModule } from './change-detection/change-detection.module.js';
 import { AiAnalysisModule } from './ai-analysis/ai-analysis.module.js';
+import { AutomationModule } from './automation/automation.module.js';
 
 @Module({
-  imports: [PrismaModule, CompetitorsModule, SnapshotsModule, CrawlerModule, ChangeDetectionModule, AiAnalysisModule],
+  imports: [
+    ScheduleModule.forRoot(),
+    PrismaModule, 
+    CompetitorsModule, 
+    SnapshotsModule, 
+    CrawlerModule, 
+    ChangeDetectionModule, 
+    AiAnalysisModule,
+    AutomationModule
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

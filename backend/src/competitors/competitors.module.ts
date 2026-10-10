@@ -5,5 +5,6 @@ import { CompetitorsController } from './competitors.controller.js';
 @Module({
   controllers: [CompetitorsController],
   providers: [CompetitorsService],
+  exports: [CompetitorsService],
 })
 export class CompetitorsModule {}

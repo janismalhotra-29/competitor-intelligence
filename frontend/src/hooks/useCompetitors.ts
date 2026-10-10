@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { fetchCompetitors, addCompetitor as apiAddCompetitor, deleteCompetitor as apiDeleteCompetitor, triggerCollection as apiTriggerCollection, getSnapshots as apiGetSnapshots, getChanges as apiGetChanges } from '@/lib/api';
 
 export function useCompetitors() {
@@ -79,6 +79,32 @@ export function useCompetitors() {
       setCollectingMap(prev => ({ ...prev, [id]: false }));
     }
   };
+
+  // Auto-refreshing UI via polling
+  useEffect(() => {
+    const intervalId = setInterval(async () => {
+      // Reload competitors list
+      const latestCompetitors = await fetchCompetitors().catch(() => null);
+      if (latestCompetitors) {
+        setCompetitors(latestCompetitors);
+        
+        // For each competitor we already have expanded (which we can guess if they exist in snapshotsMap or changesMap), reload their details
+        // Or simply reload details for all competitors that exist in the map
+        for (const comp of latestCompetitors) {
+          if (snapshotsMap[comp.id] || changesMap[comp.id]) {
+            apiGetSnapshots(comp.id)
+              .then(data => setSnapshotsMap(prev => ({ ...prev, [comp.id]: data })))
+              .catch(() => {});
+            apiGetChanges(comp.id)
+              .then(data => setChangesMap(prev => ({ ...prev, [comp.id]: data })))
+              .catch(() => {});
+          }
+        }
+      }
+    }, 15000); // poll every 15 seconds
+
+    return () => clearInterval(intervalId);
+  }, [snapshotsMap, changesMap]); // Depend on the maps to know which competitors to refresh
 
   return {
     queries: {
