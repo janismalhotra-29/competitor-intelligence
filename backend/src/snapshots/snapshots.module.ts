@@ -9,5 +9,6 @@ import { ChangeDetectionModule } from '../change-detection/change-detection.modu
   imports: [PrismaModule, CrawlerModule, ChangeDetectionModule],
   controllers: [SnapshotsController],
   providers: [SnapshotsService],
+  exports: [SnapshotsService],
 })
 export class SnapshotsModule {}
