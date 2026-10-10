@@ -12,8 +12,8 @@ export class AutomationService {
     private snapshotsService: SnapshotsService,
   ) {}
 
-  // For testing, run every 10 minutes. Change to EVERY_DAY_AT_MIDNIGHT for production
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  // Changed to EVERY_DAY_AT_MIDNIGHT for production tracking
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCron() {
     this.logger.log('Running automated crawl for all competitors');
     try {
