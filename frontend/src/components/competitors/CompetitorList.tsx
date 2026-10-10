@@ -1,33 +1,5 @@
 import { useEffect, useState } from 'react';
-
-type Competitor = {
-  id: string;
-  url: string;
-  createdAt: string;
-};
-
-type Snapshot = {
-  id: string;
-  url: string;
-  pageTitle: string | null;
-  status: string;
-  capturedAt: string;
-};
-
-type AiSummary = {
-  id: string;
-  analysis: string;
-  significance: string;
-  createdAt: string;
-};
-
-type Change = {
-  id: string;
-  hasChanges: boolean;
-  diffSummary: string | null;
-  detectedAt: string;
-  aiSummary?: AiSummary | null;
-};
+import type { Competitor, Snapshot, Change } from '@/types';
 
 interface Props {
   competitors: Competitor[];

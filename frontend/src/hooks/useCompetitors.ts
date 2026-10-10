@@ -1,9 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { fetchCompetitors, addCompetitor as apiAddCompetitor, deleteCompetitor as apiDeleteCompetitor, triggerCollection as apiTriggerCollection, getSnapshots as apiGetSnapshots, getChanges as apiGetChanges } from '@/lib/api';
-
-type Competitor = { id: string; url: string; createdAt: string; };
-type Snapshot = { id: string; url: string; pageTitle: string | null; status: string; capturedAt: string; };
-type Change = { id: string; hasChanges: boolean; diffSummary: string | null; detectedAt: string; aiSummary?: unknown; };
+import type { Competitor, Snapshot, Change } from '@/types';
 
 export function useCompetitors() {
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
