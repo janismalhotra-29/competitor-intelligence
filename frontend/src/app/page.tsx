@@ -6,11 +6,12 @@ import { CompetitorList } from '@/components/competitors/CompetitorList';
 import { useCompetitors } from '@/hooks/useCompetitors';
 
 export default function Home() {
-  const { queries, mutations, setError } = useCompetitors();
+  const { queries, mutations } = useCompetitors();
+  const { loadCompetitors } = queries;
 
   useEffect(() => {
-    queries.loadCompetitors();
-  }, [queries.loadCompetitors]);
+    loadCompetitors();
+  }, [loadCompetitors]);
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to remove this competitor?')) return;

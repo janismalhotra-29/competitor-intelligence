@@ -184,7 +184,7 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
                   <div className="text-sm text-gray-500">No history available.</div>
                 ) : (
                   <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 dark:before:via-zinc-700 before:to-transparent">
-                    {changes.map((change, index) => (
+                    {changes.map((change) => (
                       <div key={change.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                         <div className="flex items-center justify-center w-6 h-6 rounded-full border border-white dark:border-zinc-900 bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
                           <div className={`w-2 h-2 rounded-full ${change.hasChanges ? 'bg-yellow-500' : 'bg-gray-400'}`}></div>

@@ -1,22 +1,27 @@
 import { useState, useCallback, useEffect } from 'react';
 import { fetchCompetitors, addCompetitor as apiAddCompetitor, deleteCompetitor as apiDeleteCompetitor, triggerCollection as apiTriggerCollection, getSnapshots as apiGetSnapshots, getChanges as apiGetChanges } from '@/lib/api';
 
+type Competitor = { id: string; url: string; createdAt: string; };
+type Snapshot = { id: string; url: string; pageTitle: string | null; status: string; capturedAt: string; };
+type Change = { id: string; hasChanges: boolean; diffSummary: string | null; detectedAt: string; aiSummary?: unknown; };
+
 export function useCompetitors() {
-  const [competitors, setCompetitors] = useState<any[]>([]);
+  const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [adding, setAdding] = useState(false);
   const [collectingMap, setCollectingMap] = useState<Record<string, boolean>>({});
-  const [snapshotsMap, setSnapshotsMap] = useState<Record<string, any[]>>({});
-  const [changesMap, setChangesMap] = useState<Record<string, any[]>>({});
+  const [snapshotsMap, setSnapshotsMap] = useState<Record<string, Snapshot[]>>({});
+  const [changesMap, setChangesMap] = useState<Record<string, Change[]>>({});
 
   // === QUERIES (Read-only) ===
   const loadCompetitors = useCallback(async () => {
     try {
       const data = await fetchCompetitors();
       setCompetitors(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
     } finally {
       setLoading(false);
     }
@@ -26,8 +31,9 @@ export function useCompetitors() {
     try {
       const data = await apiGetSnapshots(id);
       setSnapshotsMap(prev => ({ ...prev, [id]: data }));
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
     }
   }, []);
 
@@ -35,8 +41,9 @@ export function useCompetitors() {
     try {
       const data = await apiGetChanges(id);
       setChangesMap(prev => ({ ...prev, [id]: data }));
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
     }
   }, []);
 
@@ -47,8 +54,9 @@ export function useCompetitors() {
     try {
       await apiAddCompetitor(url);
       await loadCompetitors();
-    } catch (err: any) {
-      setError(err.message || err.toString());
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
     } finally {
       setAdding(false);
     }
@@ -58,8 +66,9 @@ export function useCompetitors() {
     try {
       await apiDeleteCompetitor(id);
       await loadCompetitors();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
     }
   };
 
@@ -73,8 +82,9 @@ export function useCompetitors() {
         await loadSnapshots(id);
         await loadChanges(id);
       }, 1000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
     } finally {
       setCollectingMap(prev => ({ ...prev, [id]: false }));
     }
