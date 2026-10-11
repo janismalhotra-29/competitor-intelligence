@@ -3,15 +3,20 @@
 import { useEffect } from 'react';
 import { AddCompetitorForm } from '@/components/competitors/AddCompetitorForm';
 import { CompetitorList } from '@/components/competitors/CompetitorList';
+import { AlertsDropdown } from '@/components/alerts/AlertsDropdown';
 import { useCompetitors } from '@/hooks/useCompetitors';
+import { useAlerts } from '@/hooks/useAlerts';
 
 export default function Home() {
   const { queries, mutations } = useCompetitors();
   const { loadCompetitors } = queries;
+  const { queries: alertQueries, mutations: alertMutations } = useAlerts();
+  const { loadAlerts } = alertQueries;
 
   useEffect(() => {
     loadCompetitors();
-  }, [loadCompetitors]);
+    loadAlerts();
+  }, [loadCompetitors, loadAlerts]);
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to remove this competitor?')) return;
@@ -22,18 +27,27 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-zinc-950 dark:to-zinc-900 p-8 font-sans">
       <main className="max-w-4xl mx-auto">
         
-        <div className="flex items-center gap-4 mb-10">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">
+                Competitor Intelligence
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track and monitor your market rivals</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">
-              Competitor Intelligence
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track and monitor your market rivals</p>
-          </div>
+
+          <AlertsDropdown
+            alerts={alertQueries.alerts}
+            unreadCount={alertQueries.unreadCount}
+            markAsRead={alertMutations.markAsReadMutation}
+            markAllAsRead={alertMutations.markAllAsReadMutation}
+          />
         </div>
 
         <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-6 rounded-2xl shadow-sm mb-8 border border-gray-200/50 dark:border-zinc-800/50">

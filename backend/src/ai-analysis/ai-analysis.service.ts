@@ -4,6 +4,8 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
 
+import { AlertsService } from '../alerts/alerts.service.js';
+
 const AnalysisSchema = z.object({
   analysis: z.string().describe("A concise, plain-English summary of what changed between the old and new text."),
   significance: z.enum(["HIGH", "MEDIUM", "LOW", "NONE"]).describe("The business impact level of these changes.")
@@ -14,7 +16,10 @@ export class AiAnalysisService {
   private readonly logger = new Logger(AiAnalysisService.name);
   private openai: OpenAI | null = null;
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private alertsService: AlertsService
+  ) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       this.openai = new OpenAI({ apiKey });
@@ -73,6 +78,29 @@ export class AiAnalysisService {
         significance
       }
     });
+
+    // If change is HIGH or MEDIUM impact, create an alert
+    if (significance === 'HIGH' || significance === 'MEDIUM') {
+      try {
+        const changeRecord = await this.prisma.change.findUnique({
+          where: { id: changeId },
+          include: { competitor: true },
+        });
+
+        if (changeRecord) {
+          await this.alertsService.createAlert({
+            competitorId: changeRecord.competitorId,
+            changeId: changeRecord.id,
+            title: `${significance} Impact: ${changeRecord.competitor.url}`,
+            message: analysisText,
+            significance,
+          });
+          this.logger.log(`Created alert for competitor ${changeRecord.competitor.url}`);
+        }
+      } catch (alertErr) {
+        this.logger.error('Failed to create alert for change', alertErr);
+      }
+    }
 
     this.logger.log(`AI analysis completed for change: ${changeId}`);
     return aiSummary;

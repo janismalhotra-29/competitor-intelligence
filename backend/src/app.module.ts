@@ -9,6 +9,7 @@ import { CrawlerModule } from './crawler/crawler.module.js';
 import { ChangeDetectionModule } from './change-detection/change-detection.module.js';
 import { AiAnalysisModule } from './ai-analysis/ai-analysis.module.js';
 import { AutomationModule } from './automation/automation.module.js';
+import { AlertsModule } from './alerts/alerts.module.js';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { AutomationModule } from './automation/automation.module.js';
     CrawlerModule, 
     ChangeDetectionModule, 
     AiAnalysisModule,
-    AutomationModule
+    AutomationModule,
+    AlertsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
