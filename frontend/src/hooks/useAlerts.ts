@@ -41,12 +41,18 @@ export function useAlerts() {
     }
   };
 
-  // Initial load and periodic polling every 20 seconds
+  // Periodic polling every 20 seconds
   useEffect(() => {
-    loadAlerts();
-    const interval = setInterval(loadAlerts, 20000);
+    const interval = setInterval(async () => {
+      try {
+        const data = await fetchAlerts();
+        setAlerts(data);
+      } catch {
+        // ignore background poll errors
+      }
+    }, 20000);
     return () => clearInterval(interval);
-  }, [loadAlerts]);
+  }, []);
 
   const unreadCount = alerts.filter(a => !a.isRead).length;
 

@@ -11,10 +11,12 @@ export default function Home() {
   const { queries, mutations } = useCompetitors();
   const { loadCompetitors } = queries;
   const { queries: alertQueries, mutations: alertMutations } = useAlerts();
+  const { loadAlerts } = alertQueries;
 
   useEffect(() => {
     loadCompetitors();
-  }, [loadCompetitors]);
+    loadAlerts();
+  }, [loadCompetitors, loadAlerts]);
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to remove this competitor?')) return;
