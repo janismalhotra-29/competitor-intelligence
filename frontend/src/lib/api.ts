@@ -46,3 +46,27 @@ export async function getChanges(id: string) {
   if (!res.ok) throw new Error('Failed to fetch changes');
   return res.json();
 }
+
+export async function fetchAlerts(unreadOnly = false) {
+  const query = unreadOnly ? '?unread=true' : '';
+  const res = await fetch(`${API_URL}/alerts${query}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch alerts');
+  return res.json();
+}
+
+export async function markAlertAsRead(id: string) {
+  const res = await fetch(`${API_URL}/alerts/${id}/read`, {
+    method: 'PATCH',
+  });
+  if (!res.ok) throw new Error('Failed to mark alert as read');
+  return res.json();
+}
+
+export async function markAllAlertsAsRead() {
+  const res = await fetch(`${API_URL}/alerts/read-all`, {
+    method: 'PATCH',
+  });
+  if (!res.ok) throw new Error('Failed to mark all alerts as read');
+  return res.json();
+}
+

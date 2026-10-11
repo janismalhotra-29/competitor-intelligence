@@ -13,6 +13,7 @@ model Competitor {
   createdAt DateTime   @default(now())
   snapshots Snapshot[]
   changes   Change[]
+  alerts    Alert[]
 }
 
 model Snapshot {
@@ -46,4 +47,16 @@ model AiSummary {
   analysis        String   // The human-readable text from the LLM
   significance    String   @default("UNKNOWN") // HIGH, MEDIUM, LOW, NONE, UNKNOWN
   createdAt       DateTime @default(now())
+}
+
+model Alert {
+  id           String     @id @default(uuid())
+  competitorId String
+  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  changeId     String?
+  title        String
+  message      String
+  significance String     @default("MEDIUM") // HIGH, MEDIUM, LOW
+  isRead       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
 }

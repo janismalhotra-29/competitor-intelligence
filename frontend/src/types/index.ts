@@ -26,3 +26,16 @@ export type Change = {
   detectedAt: string;
   aiSummary?: AiSummary | null;
 };
+
+export type Alert = {
+  id: string;
+  competitorId: string;
+  changeId?: string | null;
+  title: string;
+  message: string;
+  significance: string;
+  isRead: boolean;
+  createdAt: string;
+  competitor?: Competitor;
+};
+

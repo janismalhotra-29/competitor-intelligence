@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SnapshotsService } from './snapshots.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CrawlerService } from '../crawler/crawler.service';
+import { ChangeDetectionService } from '../change-detection/change-detection.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('SnapshotsService', () => {
@@ -29,6 +30,12 @@ describe('SnapshotsService', () => {
           provide: CrawlerService,
           useValue: {
             crawlPublicPage: vi.fn(),
+          },
+        },
+        {
+          provide: ChangeDetectionService,
+          useValue: {
+            detectChangesForNewSnapshot: vi.fn().mockResolvedValue(undefined),
           },
         },
       ],
