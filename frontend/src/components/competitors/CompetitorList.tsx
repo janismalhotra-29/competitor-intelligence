@@ -11,11 +11,23 @@ interface Props {
   loadSnapshots: (id: string) => void;
   changesMap?: Record<string, Change[]>;
   loadChanges?: (id: string) => void;
+  onInspectDiff?: (competitorId: string, changeId: string) => void;
 }
 
-export function CompetitorList({ competitors, loading, onDelete, onCollect, collectingMap, snapshotsMap, loadSnapshots, changesMap, loadChanges }: Props) {
+export function CompetitorList({
+  competitors,
+  loading,
+  onDelete,
+  onCollect,
+  collectingMap,
+  snapshotsMap,
+  loadSnapshots,
+  changesMap,
+  loadChanges,
+  onInspectDiff,
+}: Props) {
   useEffect(() => {
-    competitors.forEach(comp => {
+    competitors.forEach((comp) => {
       if (!snapshotsMap[comp.id]) {
         loadSnapshots(comp.id);
       }
@@ -28,7 +40,7 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
   const [expandedHistory, setExpandedHistory] = useState<Record<string, boolean>>({});
 
   const toggleHistory = (id: string) => {
-    setExpandedHistory(prev => ({ ...prev, [id]: !prev[id] }));
+    setExpandedHistory((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   if (loading) return <div className="p-6 text-gray-500 text-center">Loading competitors...</div>;
@@ -45,7 +57,10 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
         const showHistory = expandedHistory[comp.id];
 
         return (
-          <div key={comp.id} className="group flex flex-col p-4 bg-white dark:bg-zinc-800/80 border border-gray-100 dark:border-zinc-700/50 rounded-xl hover:shadow-md hover:border-blue-100 dark:hover:border-blue-900/30 transition-all">
+          <div
+            key={comp.id}
+            className="group flex flex-col p-4 bg-white dark:bg-zinc-800/80 border border-gray-100 dark:border-zinc-700/50 rounded-xl hover:shadow-md hover:border-blue-100 dark:hover:border-blue-900/30 transition-all"
+          >
             <div className="flex justify-between items-center w-full">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
@@ -54,7 +69,12 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
                   </svg>
                 </div>
                 <div>
-                  <a href={comp.url} target="_blank" rel="noreferrer" className="text-gray-900 dark:text-gray-100 font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  <a
+                    href={comp.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-gray-900 dark:text-gray-100 font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
                     {comp.url}
                   </a>
                   <div className="flex items-center gap-2 mt-1">
@@ -72,7 +92,7 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => onCollect(comp.id)}
@@ -103,50 +123,74 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
               <div className="mt-4 pt-3 border-t border-gray-100 dark:border-zinc-700/50 flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Latest Snapshot</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${latestSnapshot.status === 'SUCCESS' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full ${
+                      latestSnapshot.status === 'SUCCESS'
+                        ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                        : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                    }`}
+                  >
                     {latestSnapshot.status}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-1">
-                  <div><span className="text-gray-400 dark:text-gray-500">Title:</span> {latestSnapshot.pageTitle || 'N/A'}</div>
-                  <div><span className="text-gray-400 dark:text-gray-500">Captured:</span> {new Date(latestSnapshot.capturedAt).toLocaleString()}</div>
+                  <div>
+                    <span className="text-gray-400 dark:text-gray-500">Title:</span> {latestSnapshot.pageTitle || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="text-gray-400 dark:text-gray-500">Captured:</span> {new Date(latestSnapshot.capturedAt).toLocaleString()}
+                  </div>
                 </div>
               </div>
             )}
 
             {latestChange && latestChange.hasChanges && !showHistory && (
-               <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg text-sm border border-yellow-100 dark:border-yellow-900/30">
-                 <div className="font-semibold text-yellow-800 dark:text-yellow-500 mb-1">Difference Summary</div>
-                 <div className="text-yellow-700 dark:text-yellow-400/90">{latestChange.diffSummary}</div>
-                 
-                 {latestChange.aiSummary ? (
-                    <div className="mt-3 pt-3 border-t border-yellow-200 dark:border-yellow-800/50">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-blue-800 dark:text-blue-400">✨ AI Analysis</span>
-                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                          latestChange.aiSummary.significance === 'HIGH' ? 'bg-red-100 text-red-700' : 
-                          latestChange.aiSummary.significance === 'MEDIUM' ? 'bg-orange-100 text-orange-700' : 
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {latestChange.aiSummary.significance} IMPACT
-                        </span>
-                      </div>
-                      <div className="text-gray-700 dark:text-gray-300 italic whitespace-pre-wrap">
-                        {latestChange.aiSummary.analysis}
-                      </div>
+              <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg text-sm border border-yellow-100 dark:border-yellow-900/30">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-yellow-800 dark:text-yellow-500">Difference Summary</span>
+                  {onInspectDiff && (
+                    <button
+                      onClick={() => onInspectDiff(comp.id, latestChange.id)}
+                      className="text-xs font-semibold px-2.5 py-0.5 bg-yellow-200/80 hover:bg-yellow-300 dark:bg-yellow-900/50 dark:hover:bg-yellow-900/80 text-yellow-900 dark:text-yellow-200 rounded-md transition-colors"
+                    >
+                      Inspect Diff →
+                    </button>
+                  )}
+                </div>
+                <div className="text-yellow-700 dark:text-yellow-400/90">{latestChange.diffSummary}</div>
+
+                {latestChange.aiSummary ? (
+                  <div className="mt-3 pt-3 border-t border-yellow-200 dark:border-yellow-800/50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-blue-800 dark:text-blue-400">✨ AI Analysis</span>
+                      <span
+                        className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                          latestChange.aiSummary.significance === 'HIGH'
+                            ? 'bg-red-100 text-red-700'
+                            : latestChange.aiSummary.significance === 'MEDIUM'
+                            ? 'bg-orange-100 text-orange-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {latestChange.aiSummary.significance} IMPACT
+                      </span>
                     </div>
-                 ) : (
-                    <div className="mt-2 text-xs text-gray-500 italic flex items-center gap-1">
-                      <span className="animate-pulse">●</span> AI analyzing changes...
+                    <div className="text-gray-700 dark:text-gray-300 italic whitespace-pre-wrap">
+                      {latestChange.aiSummary.analysis}
                     </div>
-                 )}
-               </div>
+                  </div>
+                ) : (
+                  <div className="mt-2 text-xs text-gray-500 italic flex items-center gap-1">
+                    <span className="animate-pulse">●</span> AI analyzing changes...
+                  </div>
+                )}
+              </div>
             )}
-            
+
             {latestChange && !latestChange.hasChanges && !showHistory && (
-               <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm border border-gray-100 dark:border-gray-700/50">
-                 <div className="text-gray-500 dark:text-gray-400">No textual changes detected in the last scan.</div>
-               </div>
+              <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm border border-gray-100 dark:border-gray-700/50">
+                <div className="text-gray-500 dark:text-gray-400">No textual changes detected in the last scan.</div>
+              </div>
             )}
 
             {showHistory && (
@@ -161,30 +205,50 @@ export function CompetitorList({ competitors, loading, onDelete, onCollect, coll
                         <div className="flex items-center justify-center w-6 h-6 rounded-full border border-white dark:border-zinc-900 bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
                           <div className={`w-2 h-2 rounded-full ${change.hasChanges ? 'bg-yellow-500' : 'bg-gray-400'}`}></div>
                         </div>
-                        
+
                         <div className="w-[calc(100%-2.5rem)] md:w-[calc(50%-1.5rem)] p-3 rounded-xl border border-gray-100 dark:border-zinc-700/50 bg-gray-50 dark:bg-zinc-800/50 shadow-sm">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{new Date(change.detectedAt).toLocaleString()}</span>
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                              {new Date(change.detectedAt).toLocaleString()}
+                            </span>
                             {change.hasChanges ? (
-                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500">Changes</span>
+                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500">
+                                Changes
+                              </span>
                             ) : (
-                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">No Changes</span>
+                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                No Changes
+                              </span>
                             )}
                           </div>
-                          
+
                           {change.hasChanges && change.diffSummary && (
-                            <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{change.diffSummary}</div>
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{change.diffSummary}</span>
+                              {onInspectDiff && (
+                                <button
+                                  onClick={() => onInspectDiff(comp.id, change.id)}
+                                  className="text-[11px] font-semibold px-2 py-0.5 bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 text-gray-700 dark:text-gray-200 rounded transition-colors whitespace-nowrap shrink-0"
+                                >
+                                  Inspect Diff →
+                                </button>
+                              )}
+                            </div>
                           )}
-                          
+
                           {change.aiSummary && (
                             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-zinc-700/50">
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">AI Analysis</span>
-                                <span className={`text-[9px] uppercase font-bold px-1 py-0.5 rounded ${
-                                  change.aiSummary.significance === 'HIGH' ? 'bg-red-100 text-red-700' : 
-                                  change.aiSummary.significance === 'MEDIUM' ? 'bg-orange-100 text-orange-700' : 
-                                  'bg-gray-100 text-gray-700'
-                                }`}>
+                                <span
+                                  className={`text-[9px] uppercase font-bold px-1 py-0.5 rounded ${
+                                    change.aiSummary.significance === 'HIGH'
+                                      ? 'bg-red-100 text-red-700'
+                                      : change.aiSummary.significance === 'MEDIUM'
+                                      ? 'bg-orange-100 text-orange-700'
+                                      : 'bg-gray-100 text-gray-700'
+                                  }`}
+                                >
                                   {change.aiSummary.significance}
                                 </span>
                               </div>

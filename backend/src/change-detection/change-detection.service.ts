@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as diff from 'diff';
 import { AiAnalysisService } from '../ai-analysis/ai-analysis.service.js';
@@ -86,4 +86,69 @@ export class ChangeDetectionService {
       this.logger.error('Background AI analysis failed', err);
     });
   }
+
+  async getChangesByCompetitorId(competitorId: string) {
+    return this.prisma.change.findMany({
+      where: { competitorId },
+      orderBy: { detectedAt: 'desc' },
+      include: { aiSummary: true },
+    });
+  }
+
+  async getChangeDiff(changeId: string) {
+    const change = await this.prisma.change.findUnique({
+      where: { id: changeId },
+      include: { aiSummary: true },
+    });
+
+    if (!change) {
+      throw new NotFoundException('Change record not found');
+    }
+
+    const newSnapshot = await this.prisma.snapshot.findUnique({
+      where: { id: change.newSnapshotId },
+    });
+
+    const oldSnapshot = change.oldSnapshotId
+      ? await this.prisma.snapshot.findUnique({
+          where: { id: change.oldSnapshotId },
+        })
+      : null;
+
+    const oldText = oldSnapshot?.extractedText || '';
+    const newText = newSnapshot?.extractedText || '';
+
+    const diffChunks = diff.diffLines(oldText, newText).map((part) => ({
+      value: part.value,
+      added: !!part.added,
+      removed: !!part.removed,
+    }));
+
+    return {
+      changeId: change.id,
+      competitorId: change.competitorId,
+      detectedAt: change.detectedAt,
+      diffSummary: change.diffSummary,
+      hasChanges: change.hasChanges,
+      oldSnapshot: oldSnapshot
+        ? {
+            id: oldSnapshot.id,
+            capturedAt: oldSnapshot.capturedAt,
+            pageTitle: oldSnapshot.pageTitle,
+            url: oldSnapshot.url,
+          }
+        : null,
+      newSnapshot: newSnapshot
+        ? {
+            id: newSnapshot.id,
+            capturedAt: newSnapshot.capturedAt,
+            pageTitle: newSnapshot.pageTitle,
+            url: newSnapshot.url,
+          }
+        : null,
+      diffChunks,
+      aiSummary: change.aiSummary,
+    };
+  }
 }
+
