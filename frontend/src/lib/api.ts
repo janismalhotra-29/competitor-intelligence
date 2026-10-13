@@ -70,3 +70,12 @@ export async function markAllAlertsAsRead() {
   return res.json();
 }
 
+export async function fetchChangeDiff(competitorId: string, changeId: string) {
+  const res = await fetch(`${API_URL}/competitors/${competitorId}/changes/${changeId}/diff`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Failed to fetch change diff');
+  return res.json();
+}
+
+

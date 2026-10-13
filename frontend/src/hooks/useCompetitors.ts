@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { fetchCompetitors, addCompetitor as apiAddCompetitor, deleteCompetitor as apiDeleteCompetitor, triggerCollection as apiTriggerCollection, getSnapshots as apiGetSnapshots, getChanges as apiGetChanges } from '@/lib/api';
-import type { Competitor, Snapshot, Change } from '@/types';
+import { fetchCompetitors, addCompetitor as apiAddCompetitor, deleteCompetitor as apiDeleteCompetitor, triggerCollection as apiTriggerCollection, getSnapshots as apiGetSnapshots, getChanges as apiGetChanges, fetchChangeDiff } from '@/lib/api';
+import type { Competitor, Snapshot, Change, ChangeDiffResult } from '@/types';
 
 export function useCompetitors() {
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -10,6 +10,8 @@ export function useCompetitors() {
   const [collectingMap, setCollectingMap] = useState<Record<string, boolean>>({});
   const [snapshotsMap, setSnapshotsMap] = useState<Record<string, Snapshot[]>>({});
   const [changesMap, setChangesMap] = useState<Record<string, Change[]>>({});
+  const [selectedDiff, setSelectedDiff] = useState<ChangeDiffResult | null>(null);
+  const [diffLoading, setDiffLoading] = useState(false);
 
   // === QUERIES (Read-only) ===
   const loadCompetitors = useCallback(async () => {
@@ -42,6 +44,24 @@ export function useCompetitors() {
       if (err instanceof Error) setError(err.message);
       else setError(String(err));
     }
+  }, []);
+
+  const loadChangeDiff = useCallback(async (competitorId: string, changeId: string) => {
+    setDiffLoading(true);
+    setError('');
+    try {
+      const data = await fetchChangeDiff(competitorId, changeId);
+      setSelectedDiff(data);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
+    } finally {
+      setDiffLoading(false);
+    }
+  }, []);
+
+  const closeDiffModal = useCallback(() => {
+    setSelectedDiff(null);
   }, []);
 
   // === MUTATIONS (Write-only) ===
@@ -123,6 +143,10 @@ export function useCompetitors() {
       loadChanges,
       snapshotsMap,
       changesMap,
+      selectedDiff,
+      diffLoading,
+      loadChangeDiff,
+      closeDiffModal,
     },
     mutations: {
       addCompetitorMutation,

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { AddCompetitorForm } from '@/components/competitors/AddCompetitorForm';
 import { CompetitorList } from '@/components/competitors/CompetitorList';
 import { AlertsDropdown } from '@/components/alerts/AlertsDropdown';
+import { SnapshotDiffModal } from '@/components/changes/SnapshotDiffModal';
 import { useCompetitors } from '@/hooks/useCompetitors';
 import { useAlerts } from '@/hooks/useAlerts';
 
@@ -80,8 +81,15 @@ export default function Home() {
             loadSnapshots={queries.loadSnapshots}
             changesMap={queries.changesMap}
             loadChanges={queries.loadChanges}
+            onInspectDiff={queries.loadChangeDiff}
           />
         </div>
+
+        <SnapshotDiffModal
+          diffData={queries.selectedDiff}
+          loading={queries.diffLoading}
+          onClose={queries.closeDiffModal}
+        />
       </main>
     </div>
   );

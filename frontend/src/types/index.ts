@@ -39,3 +39,29 @@ export type Alert = {
   competitor?: Competitor;
 };
 
+export type DiffChunk = {
+  value: string;
+  added: boolean;
+  removed: boolean;
+};
+
+export type SnapshotHeader = {
+  id: string;
+  capturedAt: string;
+  pageTitle: string | null;
+  url: string;
+};
+
+export type ChangeDiffResult = {
+  changeId: string;
+  competitorId: string;
+  detectedAt: string;
+  diffSummary: string | null;
+  hasChanges: boolean;
+  oldSnapshot: SnapshotHeader | null;
+  newSnapshot: SnapshotHeader | null;
+  diffChunks: DiffChunk[];
+  aiSummary?: AiSummary | null;
+};
+
+
