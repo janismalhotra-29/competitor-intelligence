@@ -3,6 +3,7 @@ import { SnapshotsService } from './snapshots.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CrawlerService } from '../crawler/crawler.service';
 import { ChangeDetectionService } from '../change-detection/change-detection.service';
+import { PricingService } from '../pricing/pricing.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('SnapshotsService', () => {
@@ -36,6 +37,12 @@ describe('SnapshotsService', () => {
           provide: ChangeDetectionService,
           useValue: {
             detectChangesForNewSnapshot: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: PricingService,
+          useValue: {
+            extractPricingFromText: vi.fn().mockResolvedValue([]),
           },
         },
       ],

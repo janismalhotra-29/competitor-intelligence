@@ -10,6 +10,7 @@ import { ChangeDetectionModule } from './change-detection/change-detection.modul
 import { AiAnalysisModule } from './ai-analysis/ai-analysis.module.js';
 import { AutomationModule } from './automation/automation.module.js';
 import { AlertsModule } from './alerts/alerts.module.js';
+import { PricingModule } from './pricing/pricing.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AlertsModule } from './alerts/alerts.module.js';
     AiAnalysisModule,
     AutomationModule,
     AlertsModule,
+    PricingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Competitor, Snapshot, Change } from '@/types';
+import type { Competitor, Snapshot, Change, PricingPlan } from '@/types';
 
 interface Props {
   competitors: Competitor[];
@@ -12,6 +12,9 @@ interface Props {
   changesMap?: Record<string, Change[]>;
   loadChanges?: (id: string) => void;
   onInspectDiff?: (competitorId: string, changeId: string) => void;
+  pricingMap?: Record<string, PricingPlan[]>;
+  loadPricing?: (id: string) => void;
+  onDownloadReport?: (id: string, url: string) => void;
 }
 
 export function CompetitorList({
@@ -25,6 +28,9 @@ export function CompetitorList({
   changesMap,
   loadChanges,
   onInspectDiff,
+  pricingMap,
+  loadPricing,
+  onDownloadReport,
 }: Props) {
   useEffect(() => {
     competitors.forEach((comp) => {
@@ -34,8 +40,11 @@ export function CompetitorList({
       if (loadChanges && (!changesMap || !changesMap[comp.id])) {
         loadChanges(comp.id);
       }
+      if (loadPricing && (!pricingMap || !pricingMap[comp.id])) {
+        loadPricing(comp.id);
+      }
     });
-  }, [competitors, loadSnapshots, snapshotsMap, loadChanges, changesMap]);
+  }, [competitors, loadSnapshots, snapshotsMap, loadChanges, changesMap, loadPricing, pricingMap]);
 
   const [expandedHistory, setExpandedHistory] = useState<Record<string, boolean>>({});
 
@@ -53,6 +62,7 @@ export function CompetitorList({
         const latestSnapshot = snapshots.length > 0 ? snapshots[0] : null;
         const changes = (changesMap && changesMap[comp.id]) || [];
         const latestChange = changes.length > 0 ? changes[0] : null;
+        const pricingPlans = (pricingMap && pricingMap[comp.id]) || [];
         const isCollecting = collectingMap[comp.id];
         const showHistory = expandedHistory[comp.id];
 
@@ -107,6 +117,15 @@ export function CompetitorList({
                 >
                   {showHistory ? 'Hide History' : 'View History'}
                 </button>
+                {onDownloadReport && (
+                  <button
+                    onClick={() => onDownloadReport(comp.id, comp.url)}
+                    className="text-sm px-3 py-1.5 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-700/50 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors font-medium flex items-center gap-1.5"
+                    title="Download Executive Intelligence Report (.md)"
+                  >
+                    <span>📄</span> Report
+                  </button>
+                )}
                 <button
                   onClick={() => onDelete(comp.id)}
                   className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-all focus:opacity-100"
@@ -140,6 +159,32 @@ export function CompetitorList({
                   <div>
                     <span className="text-gray-400 dark:text-gray-500">Captured:</span> {new Date(latestSnapshot.capturedAt).toLocaleString()}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Pricing Tiers Display */}
+            {pricingPlans.length > 0 && !showHistory && (
+              <div className="mt-3 p-3 bg-indigo-50/70 dark:bg-indigo-950/20 rounded-xl text-xs border border-indigo-100/80 dark:border-indigo-900/40">
+                <div className="font-semibold text-indigo-900 dark:text-indigo-300 mb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span>🏷️</span> Identified Pricing & Plans
+                  </span>
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-full">
+                    {pricingPlans.length} tiers
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {pricingPlans.map((plan) => (
+                    <div
+                      key={plan.id}
+                      className="px-2.5 py-1.5 bg-white dark:bg-zinc-800 rounded-lg border border-indigo-100 dark:border-zinc-700 shadow-xs flex items-center gap-1.5"
+                    >
+                      <span className="font-medium text-gray-700 dark:text-gray-200">{plan.name}:</span>
+                      <span className="font-bold text-indigo-600 dark:text-indigo-400">{plan.price}</span>
+                      {plan.period && <span className="text-gray-400 text-[10px]">/{plan.period}</span>}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
