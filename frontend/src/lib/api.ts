@@ -78,4 +78,21 @@ export async function fetchChangeDiff(competitorId: string, changeId: string) {
   return res.json();
 }
 
+export async function fetchPricingPlans(competitorId: string) {
+  const res = await fetch(`${API_URL}/competitors/${competitorId}/pricing`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Failed to fetch pricing plans');
+  return res.json();
+}
+
+export async function fetchExecutiveReport(competitorId: string) {
+  const res = await fetch(`${API_URL}/competitors/${competitorId}/report`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Failed to fetch executive report');
+  return res.json();
+}
+
+
 

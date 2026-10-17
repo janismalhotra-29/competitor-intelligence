@@ -2,13 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CrawlerService } from '../crawler/crawler.service.js';
 import { ChangeDetectionService } from '../change-detection/change-detection.service.js';
+import { PricingService } from '../pricing/pricing.service.js';
 
 @Injectable()
 export class SnapshotsService {
   constructor(
     private prisma: PrismaService,
     private crawler: CrawlerService,
-    private changeDetection: ChangeDetectionService
+    private changeDetection: ChangeDetectionService,
+    private pricingService: PricingService,
   ) {}
 
   async triggerCollection(competitorId: string) {
@@ -38,6 +40,11 @@ export class SnapshotsService {
       // Run change detection asynchronously so we don't block the API response
       this.changeDetection.detectChangesForNewSnapshot(snapshot.id, competitorId).catch(err => {
         console.error('Change detection failed:', err);
+      });
+
+      // Extract pricing tiers in the background
+      this.pricingService.extractPricingFromText(competitorId, snapshot.id, snapshot.extractedText || '').catch(err => {
+        console.error('Pricing extraction failed:', err);
       });
     }
 

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { fetchCompetitors, addCompetitor as apiAddCompetitor, deleteCompetitor as apiDeleteCompetitor, triggerCollection as apiTriggerCollection, getSnapshots as apiGetSnapshots, getChanges as apiGetChanges, fetchChangeDiff } from '@/lib/api';
-import type { Competitor, Snapshot, Change, ChangeDiffResult } from '@/types';
+import { fetchCompetitors, addCompetitor as apiAddCompetitor, deleteCompetitor as apiDeleteCompetitor, triggerCollection as apiTriggerCollection, getSnapshots as apiGetSnapshots, getChanges as apiGetChanges, fetchChangeDiff, fetchPricingPlans, fetchExecutiveReport } from '@/lib/api';
+import type { Competitor, Snapshot, Change, ChangeDiffResult, PricingPlan } from '@/types';
 
 export function useCompetitors() {
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -10,6 +10,7 @@ export function useCompetitors() {
   const [collectingMap, setCollectingMap] = useState<Record<string, boolean>>({});
   const [snapshotsMap, setSnapshotsMap] = useState<Record<string, Snapshot[]>>({});
   const [changesMap, setChangesMap] = useState<Record<string, Change[]>>({});
+  const [pricingMap, setPricingMap] = useState<Record<string, PricingPlan[]>>({});
   const [selectedDiff, setSelectedDiff] = useState<ChangeDiffResult | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
 
@@ -64,6 +65,31 @@ export function useCompetitors() {
     setSelectedDiff(null);
   }, []);
 
+  const loadPricing = useCallback(async (id: string) => {
+    try {
+      const data = await fetchPricingPlans(id);
+      setPricingMap(prev => ({ ...prev, [id]: data }));
+    } catch {
+      // ignore background error
+    }
+  }, []);
+
+  const downloadReport = useCallback(async (id: string, url: string) => {
+    try {
+      const report = await fetchExecutiveReport(id);
+      const blob = new Blob([report.reportMarkdown], { type: 'text/markdown;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      const cleanUrl = url.replace(/https?:\/\//, '').replace(/[^a-zA-Z0-9]/g, '_');
+      link.download = `intelligence_report_${cleanUrl}.md`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
+    }
+  }, []);
+
   // === MUTATIONS (Write-only) ===
   const addCompetitorMutation = async (url: string) => {
     setAdding(true);
@@ -98,6 +124,7 @@ export function useCompetitors() {
       setTimeout(async () => {
         await loadSnapshots(id);
         await loadChanges(id);
+        await loadPricing(id);
       }, 1000);
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
@@ -115,8 +142,7 @@ export function useCompetitors() {
       if (latestCompetitors) {
         setCompetitors(latestCompetitors);
         
-        // For each competitor we already have expanded (which we can guess if they exist in snapshotsMap or changesMap), reload their details
-        // Or simply reload details for all competitors that exist in the map
+        // For each competitor we already have expanded, reload their details
         for (const comp of latestCompetitors) {
           if (snapshotsMap[comp.id] || changesMap[comp.id]) {
             apiGetSnapshots(comp.id)
@@ -124,6 +150,9 @@ export function useCompetitors() {
               .catch(() => {});
             apiGetChanges(comp.id)
               .then(data => setChangesMap(prev => ({ ...prev, [comp.id]: data })))
+              .catch(() => {});
+            fetchPricingPlans(comp.id)
+              .then(data => setPricingMap(prev => ({ ...prev, [comp.id]: data })))
               .catch(() => {});
           }
         }
@@ -141,12 +170,15 @@ export function useCompetitors() {
       loadCompetitors,
       loadSnapshots,
       loadChanges,
+      loadPricing,
+      pricingMap,
       snapshotsMap,
       changesMap,
       selectedDiff,
       diffLoading,
       loadChangeDiff,
       closeDiffModal,
+      downloadReport,
     },
     mutations: {
       addCompetitorMutation,

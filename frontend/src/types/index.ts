@@ -64,4 +64,23 @@ export type ChangeDiffResult = {
   aiSummary?: AiSummary | null;
 };
 
+export type PricingPlan = {
+  id: string;
+  competitorId: string;
+  snapshotId?: string | null;
+  name: string;
+  price: string;
+  period?: string | null;
+  features?: string | null;
+  updatedAt: string;
+};
+
+export type ExecutiveReport = {
+  competitorId: string;
+  competitorUrl: string;
+  generatedAt: string;
+  reportMarkdown: string;
+};
+
+
 

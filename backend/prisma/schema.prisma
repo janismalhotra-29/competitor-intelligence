@@ -14,6 +14,7 @@ model Competitor {
   snapshots Snapshot[]
   changes   Change[]
   alerts    Alert[]
+  pricing   PricingPlan[]
 }
 
 model Snapshot {
@@ -60,3 +61,16 @@ model Alert {
   isRead       Boolean    @default(false)
   createdAt    DateTime   @default(now())
 }
+
+model PricingPlan {
+  id           String     @id @default(uuid())
+  competitorId String
+  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  snapshotId   String?
+  name         String     // e.g. "Free", "Starter", "Pro", "Enterprise"
+  price        String     // e.g. "$0", "$29", "₹999", "Custom"
+  period       String?    // "monthly", "yearly", "one-time"
+  features     String?    // JSON string array of features
+  updatedAt    DateTime   @default(now())
+}
+

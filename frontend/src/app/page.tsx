@@ -82,6 +82,9 @@ export default function Home() {
             changesMap={queries.changesMap}
             loadChanges={queries.loadChanges}
             onInspectDiff={queries.loadChangeDiff}
+            pricingMap={queries.pricingMap}
+            loadPricing={queries.loadPricing}
+            onDownloadReport={queries.downloadReport}
           />
         </div>
 
