@@ -183,3 +183,23 @@ While core end-to-end functionality across Phases 1 through 9 is functional in h
    - Bind `API_URL` to `process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'`.
 8. **Add Automation Unit Tests:**
    - Create `automation.service.spec.ts` to test cron handling, mutex lock, and error recovery.
+
+
+---
+
+## 5. Remediation & Verification Summary
+
+All 10 findings identified during the audit have been systematically remediated, verified, and integrated with tests:
+
+| Finding | Severity | Status | Verification Check |
+| :--- | :--- | :--- | :--- |
+| **1. SSRF in URL Registration & Crawler** | 🔴 CRITICAL | ✅ Resolved | `url-validator.spec.ts` & `competitors.service.spec.ts` verify rejection of loopback, RFC1918, and unresolvable IPs. |
+| **2. Fabricated Pricing Data** | 🔴 HIGH | ✅ Resolved | `pricing.service.spec.ts` verifies Wikipedia/generic text returns empty plans; only genuine prices extracted. |
+| **3. Robots.txt Directives & Rate Limiting** | 🟠 HIGH | ✅ Resolved | `CrawlerService` parses robots.txt with 1-hr TTL cache and throttles domain intervals (min 1s). |
+| **4. Uncontrolled Cron Concurrency** | 🟠 MEDIUM-HIGH | ✅ Resolved | `automation.service.spec.ts` tests verify `isRunning` mutex prevents overlapping runs. |
+| **5. Duplicate Alert Generation** | 🟠 MEDIUM | ✅ Resolved | `alerts.service.spec.ts` verifies deduplication for duplicate `changeId` alerts. |
+| **6. False-Positive Dynamic Noise** | 🟠 MEDIUM | ✅ Resolved | `change-detection.service.spec.ts` verifies relative time and timestamps do not trigger changes. |
+| **7. Hardcoded Frontend API URL** | 🟡 MEDIUM | ✅ Resolved | `api.ts` uses `process.env.NEXT_PUBLIC_API_URL` with localhost fallback. |
+| **8. Missing Automation Unit Tests** | 🟡 MEDIUM | ✅ Resolved | Created `automation.service.spec.ts` with 4 comprehensive test cases. |
+| **9. Unbounded Response Payload Buffering**| 🟡 MEDIUM | ✅ Resolved | 5 MB max body size guard and content-type whitelist added to `CrawlerService`. |
+| **10. Serverless / Storage Roadmap** | 🟡 ARCHITECTURAL | ✅ Documented | Fully analyzed in `DEPLOYMENT.md` with container and storage recommendations. |
