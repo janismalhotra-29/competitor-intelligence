@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ChangeDiffResult } from '@/types';
+import { API_URL } from '@/lib/api';
 
 interface Props {
   diffData: ChangeDiffResult | null;
@@ -8,6 +9,8 @@ interface Props {
 }
 
 export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
+  const [activeTab, setActiveTab] = useState<'text' | 'visual'>('text');
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
@@ -17,6 +20,9 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
   }, [onClose]);
 
   if (!diffData && !loading) return null;
+
+  const hasAnyScreenshot =
+    Boolean(diffData?.oldSnapshot?.screenshotUrl) || Boolean(diffData?.newSnapshot?.screenshotUrl);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -60,6 +66,33 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
+          </button>
+        </div>
+
+        {/* Tab Selector */}
+        <div className="flex border-b border-gray-200 dark:border-zinc-800 px-6 bg-gray-100/50 dark:bg-zinc-800/20 text-xs font-medium">
+          <button
+            onClick={() => setActiveTab('text')}
+            className={`py-2.5 px-4 border-b-2 transition-colors flex items-center gap-1.5 ${
+              activeTab === 'text'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <span>📝 Text Differences</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('visual')}
+            className={`py-2.5 px-4 border-b-2 transition-colors flex items-center gap-1.5 ${
+              activeTab === 'visual'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <span>📸 Visual Screenshots</span>
+            {hasAnyScreenshot && (
+              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse" />
+            )}
           </button>
         </div>
 
@@ -117,59 +150,135 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
                 </div>
               </div>
 
-              {/* Text Diff View */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                    Content Differences
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {diffData.diffSummary || 'Unified view'}
-                  </span>
-                </div>
+              {/* TAB 1: Text Diff View */}
+              {activeTab === 'text' && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      Content Differences
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {diffData.diffSummary || 'Unified view'}
+                    </span>
+                  </div>
 
-                <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-900 text-gray-100 font-mono text-xs overflow-x-auto max-h-96 p-4 space-y-1">
-                  {diffData.diffChunks.length === 0 ? (
-                    <div className="text-gray-500 italic p-4 text-center">
-                      No line differences found.
-                    </div>
-                  ) : (
-                    diffData.diffChunks.map((chunk, index) => {
-                      if (chunk.added) {
+                  <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-900 text-gray-100 font-mono text-xs overflow-x-auto max-h-96 p-4 space-y-1">
+                    {diffData.diffChunks.length === 0 ? (
+                      <div className="text-gray-500 italic p-4 text-center">
+                        No line differences found.
+                      </div>
+                    ) : (
+                      diffData.diffChunks.map((chunk, index) => {
+                        if (chunk.added) {
+                          return (
+                            <div
+                              key={index}
+                              className="bg-green-950/60 text-green-300 border-l-4 border-green-500 px-3 py-1.5 rounded-r my-1 whitespace-pre-wrap break-words"
+                            >
+                              <span className="text-green-500 font-bold select-none mr-2">+</span>
+                              {chunk.value}
+                            </div>
+                          );
+                        }
+                        if (chunk.removed) {
+                          return (
+                            <div
+                              key={index}
+                              className="bg-red-950/60 text-red-300 border-l-4 border-red-500 px-3 py-1.5 rounded-r my-1 whitespace-pre-wrap break-words opacity-80"
+                            >
+                              <span className="text-red-500 font-bold select-none mr-2">-</span>
+                              {chunk.value}
+                            </div>
+                          );
+                        }
                         return (
                           <div
                             key={index}
-                            className="bg-green-950/60 text-green-300 border-l-4 border-green-500 px-3 py-1.5 rounded-r my-1 whitespace-pre-wrap break-words"
+                            className="text-gray-400 px-3 py-0.5 whitespace-pre-wrap break-words"
                           >
-                            <span className="text-green-500 font-bold select-none mr-2">+</span>
+                            <span className="text-gray-600 select-none mr-2"> </span>
                             {chunk.value}
                           </div>
                         );
-                      }
-                      if (chunk.removed) {
-                        return (
-                          <div
-                            key={index}
-                            className="bg-red-950/60 text-red-300 border-l-4 border-red-500 px-3 py-1.5 rounded-r my-1 whitespace-pre-wrap break-words opacity-80"
-                          >
-                            <span className="text-red-500 font-bold select-none mr-2">-</span>
-                            {chunk.value}
-                          </div>
-                        );
-                      }
-                      return (
-                        <div
-                          key={index}
-                          className="text-gray-400 px-3 py-0.5 whitespace-pre-wrap break-words"
-                        >
-                          <span className="text-gray-600 select-none mr-2"> </span>
-                          {chunk.value}
-                        </div>
-                      );
-                    })
-                  )}
+                      })
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* TAB 2: Visual Screenshot Comparison */}
+              {activeTab === 'visual' && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      Visual Side-by-Side Comparison
+                    </span>
+                    <span className="text-[11px] text-gray-500">
+                      Desktop Viewport (1280x720)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Baseline Screenshot */}
+                    <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-3 bg-gray-50 dark:bg-zinc-800/40">
+                      <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
+                        <span>Baseline Visual</span>
+                        <span className="text-[10px] text-gray-500 font-normal">
+                          {diffData.oldSnapshot
+                            ? new Date(diffData.oldSnapshot.capturedAt).toLocaleTimeString()
+                            : 'N/A'}
+                        </span>
+                      </div>
+                      {diffData.oldSnapshot?.screenshotUrl ? (
+                        <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 bg-black/10">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`${API_URL}${diffData.oldSnapshot.screenshotUrl}`}
+                            alt="Baseline Screenshot"
+                            className="w-full h-auto object-cover max-h-96 rounded-lg"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
+                          <span>📷 No baseline visual image</span>
+                          <span className="text-[10px] text-gray-500">
+                            Captured before visual screenshot support or unavailable.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Current Screenshot */}
+                    <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-3 bg-gray-50 dark:bg-zinc-800/40">
+                      <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
+                        <span>Current Visual</span>
+                        <span className="text-[10px] text-gray-500 font-normal">
+                          {diffData.newSnapshot
+                            ? new Date(diffData.newSnapshot.capturedAt).toLocaleTimeString()
+                            : 'N/A'}
+                        </span>
+                      </div>
+                      {diffData.newSnapshot?.screenshotUrl ? (
+                        <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 bg-black/10">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`${API_URL}${diffData.newSnapshot.screenshotUrl}`}
+                            alt="Current Screenshot"
+                            className="w-full h-auto object-cover max-h-96 rounded-lg"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
+                          <span>📷 Visual capture pending</span>
+                          <span className="text-[10px] text-gray-500">
+                            Capture will appear automatically after crawl navigation.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           ) : null}
         </div>

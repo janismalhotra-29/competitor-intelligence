@@ -183,6 +183,7 @@ export class ChangeDetectionService {
             capturedAt: oldSnapshot.capturedAt,
             pageTitle: oldSnapshot.pageTitle,
             url: oldSnapshot.url,
+            screenshotUrl: oldSnapshot.screenshotUrl,
           }
         : null,
       newSnapshot: newSnapshot
@@ -191,6 +192,7 @@ export class ChangeDetectionService {
             capturedAt: newSnapshot.capturedAt,
             pageTitle: newSnapshot.pageTitle,
             url: newSnapshot.url,
+            screenshotUrl: newSnapshot.screenshotUrl,
           }
         : null,
       diffChunks,

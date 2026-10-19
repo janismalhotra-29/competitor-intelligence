@@ -11,6 +11,7 @@ import { AiAnalysisModule } from './ai-analysis/ai-analysis.module.js';
 import { AutomationModule } from './automation/automation.module.js';
 import { AlertsModule } from './alerts/alerts.module.js';
 import { PricingModule } from './pricing/pricing.module.js';
+import { ScreenshotsModule } from './screenshots/screenshots.module.js';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PricingModule } from './pricing/pricing.module.js';
     AutomationModule,
     AlertsModule,
     PricingModule,
+    ScreenshotsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

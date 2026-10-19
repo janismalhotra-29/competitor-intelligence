@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CrawlerService } from '../crawler/crawler.service.js';
 import { ChangeDetectionService } from '../change-detection/change-detection.service.js';
 import { PricingService } from '../pricing/pricing.service.js';
+import { ScreenshotService } from '../screenshots/screenshot.service.js';
 
 @Injectable()
 export class SnapshotsService {
@@ -11,6 +12,7 @@ export class SnapshotsService {
     private crawler: CrawlerService,
     private changeDetection: ChangeDetectionService,
     private pricingService: PricingService,
+    private screenshotService: ScreenshotService,
   ) {}
 
   async triggerCollection(competitorId: string) {
@@ -37,6 +39,18 @@ export class SnapshotsService {
     });
 
     if (snapshot.status === 'SUCCESS') {
+      // Capture desktop screenshot in the background
+      this.screenshotService.captureScreenshot(competitor.url, snapshot.id).then(async (screenshotUrl) => {
+        if (screenshotUrl) {
+          await this.prisma.snapshot.update({
+            where: { id: snapshot.id },
+            data: { screenshotUrl },
+          });
+        }
+      }).catch(err => {
+        console.error('Visual screenshot capture failed:', err);
+      });
+
       // Run change detection asynchronously so we don't block the API response
       this.changeDetection.detectChangesForNewSnapshot(snapshot.id, competitorId).catch(err => {
         console.error('Change detection failed:', err);
