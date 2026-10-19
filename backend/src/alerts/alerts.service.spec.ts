@@ -10,6 +10,7 @@ describe('AlertsService', () => {
     prismaMock = {
       alert: {
         create: vi.fn(),
+        findFirst: vi.fn(),
         findMany: vi.fn(),
         update: vi.fn(),
         updateMany: vi.fn(),
@@ -37,6 +38,30 @@ describe('AlertsService', () => {
         isRead: false,
       },
     });
+  });
+
+  it('should prevent creating duplicate alert if changeId already exists', async () => {
+    const existingAlert = {
+      id: 'existing-alert',
+      competitorId: 'comp-1',
+      changeId: 'change-123',
+      title: 'Already reported',
+      message: 'Already exists',
+    };
+    prismaMock.alert.findFirst.mockResolvedValue(existingAlert);
+
+    const result = await service.createAlert({
+      competitorId: 'comp-1',
+      changeId: 'change-123',
+      title: 'New attempt',
+      message: 'Duplicate message',
+    });
+
+    expect(prismaMock.alert.findFirst).toHaveBeenCalledWith({
+      where: { changeId: 'change-123' },
+    });
+    expect(prismaMock.alert.create).not.toHaveBeenCalled();
+    expect(result.id).toBe('existing-alert');
   });
 
   it('should find all alerts', async () => {

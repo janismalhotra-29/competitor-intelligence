@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CrawlerService } from './crawler.service';
+import { CrawlerService } from './crawler.service.js';
 
 describe('CrawlerService', () => {
   let service: CrawlerService;
@@ -24,14 +24,21 @@ describe('CrawlerService', () => {
     expect(result.extractedText).toBeDefined();
   });
 
-  it('should handle invalid URL', async () => {
+  it('should immediately reject SSRF attempts to localhost/private IP', async () => {
+    const result = await service.crawlPublicPage('http://127.0.0.1:3001/alerts');
+    expect(result.status).toBe('FAILED');
+    expect(result.pageTitle).toBeNull();
+    expect(result.metadata?.error).toBeDefined();
+  });
+
+  it('should handle invalid or unresolvable URL', async () => {
     const result = await service.crawlPublicPage('http://invalid.local');
     expect(result.status).toBe('FAILED');
     expect(result.pageTitle).toBeNull();
-  }, 15000);
+  });
 
   it('should handle unavailable page gracefully', async () => {
     const result = await service.crawlPublicPage('https://httpstat.us/404');
     expect(result.status).toBe('FAILED');
-  });
+  }, 15000);
 });

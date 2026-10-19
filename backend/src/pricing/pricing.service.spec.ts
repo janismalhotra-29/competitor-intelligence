@@ -83,20 +83,42 @@ describe('PricingService', () => {
       expect(result).toEqual([]);
     });
 
-    it('should extract heuristic plans when pricing keywords are present without OpenAI key', async () => {
+    it('should not fabricate pricing plans for generic text with the word plan', async () => {
+      prismaMock.competitor.findUnique.mockResolvedValue({ id: 'comp-1' });
+      prismaMock.pricingPlan.findMany.mockResolvedValue([]);
+
+      const result = await service.extractPricingFromText(
+        'comp-1',
+        'snap-1',
+        'Wikipedia is an encyclopedia with an editorial plan for volunteer editors.',
+      );
+
+      expect(prismaMock.pricingPlan.create).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
+
+    it('should extract authentic heuristic plans when actual currency prices are present', async () => {
       prismaMock.competitor.findUnique.mockResolvedValue({ id: 'comp-1' });
       prismaMock.pricingPlan.findMany.mockResolvedValue([
-        { id: 'plan-1', name: 'Starter', price: '$0' },
+        { id: 'plan-1', name: 'Pro', price: '$29' },
       ]);
 
       const result = await service.extractPricingFromText(
         'comp-1',
         'snap-1',
-        'Our new plan is $29/mo with great pricing options',
+        'Check out our Pro Plan: $29/mo with unlimited monitoring and alerts.',
       );
 
       expect(prismaMock.pricingPlan.deleteMany).toHaveBeenCalled();
-      expect(prismaMock.pricingPlan.create).toHaveBeenCalled();
+      expect(prismaMock.pricingPlan.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Pro',
+            price: '$29',
+            period: 'monthly',
+          }),
+        }),
+      );
       expect(result).toBeDefined();
     });
   });

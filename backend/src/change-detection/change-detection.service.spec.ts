@@ -14,6 +14,7 @@ describe('ChangeDetectionService', () => {
       change: {
         findMany: vi.fn(),
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
         create: vi.fn(),
       },
       snapshot: {
@@ -32,6 +33,29 @@ describe('ChangeDetectionService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('normalizeTextForComparison', () => {
+    it('should filter out dynamic timestamps and relative time', () => {
+      const raw1 = 'Welcome to our platform. Last updated 2 minutes ago on 2026-10-19 14:30:00.';
+      const raw2 = 'Welcome to our platform. Last updated 15 minutes ago on 2026-10-19 14:45:00.';
+
+      const norm1 = service.normalizeTextForComparison(raw1);
+      const norm2 = service.normalizeTextForComparison(raw2);
+
+      expect(norm1).toBe(norm2);
+      expect(norm1).toContain('Welcome to our platform. Last updated on .');
+    });
+
+    it('should preserve meaningful business content changes', () => {
+      const raw1 = 'Pro Plan costs $29/mo with 5 seats.';
+      const raw2 = 'Pro Plan costs $49/mo with 10 seats.';
+
+      const norm1 = service.normalizeTextForComparison(raw1);
+      const norm2 = service.normalizeTextForComparison(raw2);
+
+      expect(norm1).not.toBe(norm2);
+    });
   });
 
   describe('getChangesByCompetitorId', () => {

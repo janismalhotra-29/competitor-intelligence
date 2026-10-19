@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class AlertsService {
+  private readonly logger = new Logger(AlertsService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async createAlert(data: {
@@ -12,6 +14,17 @@ export class AlertsService {
     message: string;
     significance?: string;
   }) {
+    // Prevent duplicate alert for the same change event
+    if (data.changeId) {
+      const existing = await this.prisma.alert.findFirst({
+        where: { changeId: data.changeId },
+      });
+      if (existing) {
+        this.logger.warn(`Alert already exists for change ${data.changeId}. Skipping duplicate creation.`);
+        return existing;
+      }
+    }
+
     return this.prisma.alert.create({
       data: {
         competitorId: data.competitorId,
