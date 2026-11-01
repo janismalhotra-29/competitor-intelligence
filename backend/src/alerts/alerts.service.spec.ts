@@ -2,20 +2,30 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AlertsService } from './alerts.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+import { WebhookNotifierService } from './webhook-notifier.service.js';
+
 describe('AlertsService', () => {
   let service: AlertsService;
   let prismaMock: any;
+  let webhookNotifierMock: any;
 
   beforeEach(() => {
     prismaMock = {
       alert: {
         create: vi.fn(),
+        findFirst: vi.fn(),
         findMany: vi.fn(),
         update: vi.fn(),
         updateMany: vi.fn(),
       },
     };
-    service = new AlertsService(prismaMock as unknown as PrismaService);
+    webhookNotifierMock = {
+      notifyAlert: vi.fn().mockResolvedValue(undefined),
+    };
+    service = new AlertsService(
+      prismaMock as unknown as PrismaService,
+      webhookNotifierMock as unknown as WebhookNotifierService,
+    );
   });
 
   it('should create an alert', async () => {
@@ -37,6 +47,30 @@ describe('AlertsService', () => {
         isRead: false,
       },
     });
+  });
+
+  it('should prevent creating duplicate alert if changeId already exists', async () => {
+    const existingAlert = {
+      id: 'existing-alert',
+      competitorId: 'comp-1',
+      changeId: 'change-123',
+      title: 'Already reported',
+      message: 'Already exists',
+    };
+    prismaMock.alert.findFirst.mockResolvedValue(existingAlert);
+
+    const result = await service.createAlert({
+      competitorId: 'comp-1',
+      changeId: 'change-123',
+      title: 'New attempt',
+      message: 'Duplicate message',
+    });
+
+    expect(prismaMock.alert.findFirst).toHaveBeenCalledWith({
+      where: { changeId: 'change-123' },
+    });
+    expect(prismaMock.alert.create).not.toHaveBeenCalled();
+    expect(result.id).toBe('existing-alert');
   });
 
   it('should find all alerts', async () => {

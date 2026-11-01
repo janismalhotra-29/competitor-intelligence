@@ -4,12 +4,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CrawlerService } from '../crawler/crawler.service';
 import { ChangeDetectionService } from '../change-detection/change-detection.service';
 import { PricingService } from '../pricing/pricing.service';
+import { ScreenshotService } from '../screenshots/screenshot.service.js';
 import { NotFoundException } from '@nestjs/common';
 
 describe('SnapshotsService', () => {
   let service: SnapshotsService;
   let prisma: PrismaService;
   let crawler: CrawlerService;
+  let screenshotService: ScreenshotService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -23,6 +25,7 @@ describe('SnapshotsService', () => {
             },
             snapshot: {
               create: vi.fn(),
+              update: vi.fn(),
               findMany: vi.fn(),
             },
           },
@@ -45,12 +48,19 @@ describe('SnapshotsService', () => {
             extractPricingFromText: vi.fn().mockResolvedValue([]),
           },
         },
+        {
+          provide: ScreenshotService,
+          useValue: {
+            captureScreenshot: vi.fn().mockResolvedValue('/snapshots/snap-1/screenshot'),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<SnapshotsService>(SnapshotsService);
     prisma = module.get<PrismaService>(PrismaService);
     crawler = module.get<CrawlerService>(CrawlerService);
+    screenshotService = module.get<ScreenshotService>(ScreenshotService);
   });
 
   it('should be defined', () => {
@@ -92,5 +102,6 @@ describe('SnapshotsService', () => {
     const result = await service.triggerCollection('comp-1');
     expect(result.id).toBe('snap-1');
     expect(prisma.snapshot.create).toHaveBeenCalled();
+    expect(screenshotService.captureScreenshot).toHaveBeenCalledWith('https://example.com', 'snap-1');
   });
 });

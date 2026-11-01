@@ -5,9 +5,10 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { CrawlerModule } from '../crawler/crawler.module.js';
 import { ChangeDetectionModule } from '../change-detection/change-detection.module.js';
 import { PricingModule } from '../pricing/pricing.module.js';
+import { ScreenshotsModule } from '../screenshots/screenshots.module.js';
 
 @Module({
-  imports: [PrismaModule, CrawlerModule, ChangeDetectionModule, PricingModule],
+  imports: [PrismaModule, CrawlerModule, ChangeDetectionModule, PricingModule, ScreenshotsModule],
   controllers: [SnapshotsController],
   providers: [SnapshotsService],
   exports: [SnapshotsService],

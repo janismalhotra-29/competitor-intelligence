@@ -1,9 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { WebhookNotifierService } from './webhook-notifier.service.js';
 
 @Injectable()
 export class AlertsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(AlertsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private webhookNotifier: WebhookNotifierService,
+  ) {}
 
   async createAlert(data: {
     competitorId: string;
@@ -12,7 +18,18 @@ export class AlertsService {
     message: string;
     significance?: string;
   }) {
-    return this.prisma.alert.create({
+    // Prevent duplicate alert for the same change event
+    if (data.changeId) {
+      const existing = await this.prisma.alert.findFirst({
+        where: { changeId: data.changeId },
+      });
+      if (existing) {
+        this.logger.warn(`Alert already exists for change ${data.changeId}. Skipping duplicate creation.`);
+        return existing;
+      }
+    }
+
+    const alert = await this.prisma.alert.create({
       data: {
         competitorId: data.competitorId,
         changeId: data.changeId,
@@ -22,6 +39,22 @@ export class AlertsService {
         isRead: false,
       },
     });
+
+    // Asynchronously dispatch external webhooks (Slack/Discord) if configured
+    this.webhookNotifier
+      .notifyAlert({
+        id: alert.id,
+        title: alert.title,
+        message: alert.message,
+        significance: alert.significance,
+        competitorId: alert.competitorId,
+        changeId: alert.changeId,
+      })
+      .catch((err) => {
+        this.logger.error('Failed to dispatch webhook notification', err);
+      });
+
+    return alert;
   }
 
   async findAll(unreadOnly = false) {

@@ -9,8 +9,30 @@ export class ChangeDetectionService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly aiAnalysis: AiAnalysisService
+    private readonly aiAnalysis: AiAnalysisService,
   ) {}
+
+  /**
+   * Filters out dynamic content noise (e.g. timestamps, relative time, session tokens)
+   * so that minor dynamic updates don't trigger false-positive changes or AI bills.
+   */
+  normalizeTextForComparison(text: string): string {
+    if (!text) return '';
+    return text
+      // Relative time (e.g. "5 minutes ago", "1 hour ago", "3 days ago")
+      .replace(/\b\d+\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)\s+ago\b/gi, '')
+      // Clock times (e.g. 10:45:12 AM, 14:30)
+      .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\b/g, '')
+      // ISO and standard date formats (e.g. 2026-10-19, Oct 19, 2026, 19/10/2026)
+      .replace(/\b\d{4}-\d{2}-\d{2}\b/g, '')
+      .replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/gi, '')
+      .replace(/\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b/g, '')
+      // Hex session/CSRF tokens (32+ chars)
+      .replace(/\b[a-f0-9]{32,64}\b/gi, '')
+      // Whitespace collapse
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
 
   async detectChangesForNewSnapshot(newSnapshotId: string, competitorId: string) {
     this.logger.log(`Detecting changes for snapshot: ${newSnapshotId}`);
@@ -23,28 +45,34 @@ export class ChangeDetectionService {
 
     if (snapshots.length < 2) {
       this.logger.log(`Only 1 snapshot found. Baseline established for competitor ${competitorId}`);
-      await this.prisma.change.create({
-        data: {
-          competitorId,
-          newSnapshotId: snapshots[0].id,
-          hasChanges: false,
-          diffSummary: 'Initial baseline snapshot.',
-        },
+      const existingBaseline = await this.prisma.change.findFirst({
+        where: { competitorId, newSnapshotId: snapshots[0].id },
       });
+      if (!existingBaseline) {
+        await this.prisma.change.create({
+          data: {
+            competitorId,
+            newSnapshotId: snapshots[0].id,
+            hasChanges: false,
+            diffSummary: 'Initial baseline snapshot established.',
+          },
+        });
+      }
       return;
     }
 
     const [latestSnapshot, previousSnapshot] = snapshots;
-    
+
     if (latestSnapshot.id !== newSnapshotId) {
-       this.logger.warn(`Snapshot ${newSnapshotId} is not the latest. Skipping detection.`);
-       return;
+      this.logger.warn(`Snapshot ${newSnapshotId} is not the latest. Skipping detection.`);
+      return;
     }
 
-    const oldText = previousSnapshot.extractedText || '';
-    const newText = latestSnapshot.extractedText || '';
+    const oldRawText = previousSnapshot.extractedText || '';
+    const newRawText = latestSnapshot.extractedText || '';
 
-    if (oldText === newText) {
+    // Check raw equality
+    if (oldRawText === newRawText) {
       this.logger.log(`No textual changes detected for competitor ${competitorId}`);
       await this.prisma.change.create({
         data: {
@@ -58,8 +86,27 @@ export class ChangeDetectionService {
       return;
     }
 
-    const differences = diff.diffLines(oldText, newText);
-    
+    // Check normalized equality to filter dynamic noise
+    const normalizedOld = this.normalizeTextForComparison(oldRawText);
+    const normalizedNew = this.normalizeTextForComparison(newRawText);
+
+    if (normalizedOld === normalizedNew) {
+      this.logger.log(`Dynamic content noise filtered out; no substantive change for competitor ${competitorId}`);
+      await this.prisma.change.create({
+        data: {
+          competitorId,
+          oldSnapshotId: previousSnapshot.id,
+          newSnapshotId: latestSnapshot.id,
+          hasChanges: false,
+          diffSummary: 'No meaningful changes detected (dynamic noise filtered).',
+        },
+      });
+      return;
+    }
+
+    // Meaningful differences exist
+    const differences = diff.diffLines(oldRawText, newRawText);
+
     let addedCount = 0;
     let removedCount = 0;
 
@@ -69,7 +116,7 @@ export class ChangeDetectionService {
     });
 
     const diffSummary = `Detected ${addedCount} added block(s) and ${removedCount} removed block(s).`;
-    this.logger.log(`Changes detected: ${diffSummary}`);
+    this.logger.log(`Meaningful changes detected: ${diffSummary}`);
 
     const change = await this.prisma.change.create({
       data: {
@@ -81,8 +128,8 @@ export class ChangeDetectionService {
       },
     });
 
-    // Trigger AI Analysis in the background
-    this.aiAnalysis.analyzeChange(change.id, oldText, newText).catch(err => {
+    // Trigger AI Analysis in the background for grounded assessment
+    this.aiAnalysis.analyzeChange(change.id, oldRawText, newRawText).catch((err) => {
       this.logger.error('Background AI analysis failed', err);
     });
   }
@@ -136,6 +183,7 @@ export class ChangeDetectionService {
             capturedAt: oldSnapshot.capturedAt,
             pageTitle: oldSnapshot.pageTitle,
             url: oldSnapshot.url,
+            screenshotUrl: oldSnapshot.screenshotUrl,
           }
         : null,
       newSnapshot: newSnapshot
@@ -144,6 +192,7 @@ export class ChangeDetectionService {
             capturedAt: newSnapshot.capturedAt,
             pageTitle: newSnapshot.pageTitle,
             url: newSnapshot.url,
+            screenshotUrl: newSnapshot.screenshotUrl,
           }
         : null,
       diffChunks,
@@ -151,4 +200,3 @@ export class ChangeDetectionService {
     };
   }
 }
-

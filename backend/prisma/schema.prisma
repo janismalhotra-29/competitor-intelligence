@@ -27,6 +27,7 @@ model Snapshot {
   metadata     String?
   capturedAt   DateTime   @default(now())
   status       String     @default("SUCCESS")
+  screenshotUrl String?
 }
 
 model Change {

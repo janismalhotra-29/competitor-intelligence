@@ -10,6 +10,7 @@ export type Snapshot = {
   pageTitle: string | null;
   status: string;
   capturedAt: string;
+  screenshotUrl?: string | null;
 };
 
 export type AiSummary = {
@@ -50,6 +51,7 @@ export type SnapshotHeader = {
   capturedAt: string;
   pageTitle: string | null;
   url: string;
+  screenshotUrl?: string | null;
 };
 
 export type ChangeDiffResult = {

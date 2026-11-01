@@ -46,7 +46,7 @@ export class PricingService {
             {
               role: 'system',
               content:
-                'You are a business intelligence agent. Extract all pricing tiers and plan details from the provided webpage text. If no explicit pricing tiers exist, return an empty array.',
+                'You are a rigorous business intelligence extraction agent. Extract only explicit pricing tiers and plan details from the provided webpage text. If no explicit pricing tables or tiers exist with concrete currency amounts or stated custom pricing, return an empty plans array. CRITICAL: NEVER invent, hallucinate, or assume plans that are not explicitly stated in the text.',
             },
             {
               role: 'user',
@@ -64,24 +64,17 @@ export class PricingService {
         this.logger.error('Failed to parse pricing via OpenAI', err);
       }
     } else {
-      // Mock / Heuristic extraction when API key is not present
+      // Heuristic extraction when API key is not present - strictly grounded, no fabrication
       this.logger.log('Running heuristic pricing extraction...');
-      const lower = text.toLowerCase();
-      if (lower.includes('$') || lower.includes('₹') || lower.includes('pricing') || lower.includes('/mo') || lower.includes('plan')) {
-        extractedPlans = [
-          { name: 'Starter', price: '$0', period: 'monthly', features: ['Core access', 'Community support'] },
-          { name: 'Pro Plan', price: '$29', period: 'monthly', features: ['Advanced monitoring', 'Real-time alerts', 'Priority support'] },
-          { name: 'Enterprise', price: 'Custom', period: 'yearly', features: ['Dedicated SLA', 'Custom crawling', 'Unlimited seats'] },
-        ];
-      }
+      extractedPlans = this.extractHeuristicPricing(text);
     }
 
-    if (extractedPlans.length > 0) {
-      // Clean up previous pricing plans for this competitor and replace with latest
-      await this.prisma.pricingPlan.deleteMany({
-        where: { competitorId },
-      });
+    // Always sync with database: replace with authentically identified plans
+    await this.prisma.pricingPlan.deleteMany({
+      where: { competitorId },
+    });
 
+    if (extractedPlans.length > 0) {
       for (const plan of extractedPlans) {
         await this.prisma.pricingPlan.create({
           data: {
@@ -94,10 +87,61 @@ export class PricingService {
           },
         });
       }
-      this.logger.log(`Saved ${extractedPlans.length} pricing plans for competitor ${competitorId}`);
+      this.logger.log(`Saved ${extractedPlans.length} authentic pricing plans for competitor ${competitorId}`);
+    } else {
+      this.logger.log(`No explicit pricing tables detected for competitor ${competitorId}`);
     }
 
     return this.getPricingByCompetitor(competitorId);
+  }
+
+  private extractHeuristicPricing(text: string): Array<{
+    name: string;
+    price: string;
+    period?: string;
+    features?: string[];
+  }> {
+    const plans: Array<{ name: string; price: string; period?: string; features?: string[] }> = [];
+
+    // Strictly match currency amounts (e.g. $29, ₹999, €49) or explicit free tiers
+    const priceRegex =
+      /(?:(Free|Starter|Basic|Standard|Pro(?:fessional)?|Team|Business|Enterprise|Growth|Scale)\s*(?:Plan|Tier)?\s*(?:[:\-–]|is|at|for|from|starts at)?\s*)?(?:(\$|₹|€|£|Rs\.?)\s*(\d+(?:,\d{3})*(?:\.\d{2})?)|(Free\s+Plan|Free\s+Tier))\s*(?:\/|\s*per\s*)?(month|mo|year|yr|user|seat)?/gi;
+
+    const matches = Array.from(text.matchAll(priceRegex));
+    const seenNames = new Set<string>();
+
+    for (const match of matches) {
+      const planNameCandidate = match[1]?.trim();
+      const currency = match[2];
+      const amount = match[3];
+      const isExplicitFree = match[4];
+      const rawPeriod = match[5]?.toLowerCase();
+
+      if (!amount && !isExplicitFree) continue;
+
+      const name = planNameCandidate || (isExplicitFree ? 'Free Tier' : 'Standard');
+      const price = isExplicitFree ? '$0' : `${currency || '$'}${amount}`;
+      let period = 'monthly';
+      if (rawPeriod) {
+        if (rawPeriod.includes('yr') || rawPeriod.includes('year') || rawPeriod.includes('annual')) {
+          period = 'yearly';
+        } else if (rawPeriod.includes('user') || rawPeriod.includes('seat')) {
+          period = 'per user/month';
+        }
+      }
+
+      if (!seenNames.has(name.toLowerCase())) {
+        seenNames.add(name.toLowerCase());
+        plans.push({
+          name,
+          price,
+          period,
+          features: ['Identified from public page content'],
+        });
+      }
+    }
+
+    return plans.slice(0, 5);
   }
 
   async getPricingByCompetitor(competitorId: string) {

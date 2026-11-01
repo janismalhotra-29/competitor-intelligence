@@ -1,12 +1,18 @@
 import { Injectable, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateCompetitorDto } from './dto/create-competitor.dto.js';
+import { validatePublicUrl } from '../common/url-validator.js';
 
 @Injectable()
 export class CompetitorsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createCompetitorDto: CreateCompetitorDto) {
+    const validation = await validatePublicUrl(createCompetitorDto.url);
+    if (!validation.valid) {
+      throw new BadRequestException(validation.reason || 'Invalid competitor URL');
+    }
+
     try {
       return await this.prisma.competitor.create({
         data: { url: createCompetitorDto.url },
