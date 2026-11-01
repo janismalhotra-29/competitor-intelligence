@@ -2,7 +2,18 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
 import { chromium, Browser } from 'playwright';
+import pixelmatch from 'pixelmatch';
+import { PNG } from 'pngjs';
 import { validatePublicUrl } from '../common/url-validator.js';
+
+export interface VisualDiffResult {
+  diffImageUrl: string;
+  diffPercentage: number;
+  diffPixels: number;
+  totalPixels: number;
+  width: number;
+  height: number;
+}
 
 @Injectable()
 export class ScreenshotService implements OnModuleDestroy {
@@ -113,6 +124,138 @@ export class ScreenshotService implements OnModuleDestroy {
     }
 
     if (!fs.existsSync(resolvedPath)) {
+      return null;
+    }
+
+    return resolvedPath;
+  }
+
+  /**
+   * Pads an image to the target dimensions if width/height differ between snapshots.
+   */
+  private padPng(src: PNG, targetWidth: number, targetHeight: number): PNG {
+    if (src.width === targetWidth && src.height === targetHeight) {
+      return src;
+    }
+    const dst = new PNG({ width: targetWidth, height: targetHeight });
+    dst.data.fill(255); // initialize with white background
+    for (let y = 0; y < src.height; y++) {
+      for (let x = 0; x < src.width; x++) {
+        const srcIdx = (y * src.width + x) * 4;
+        const dstIdx = (y * targetWidth + x) * 4;
+        dst.data[dstIdx] = src.data[srcIdx];
+        dst.data[dstIdx + 1] = src.data[srcIdx + 1];
+        dst.data[dstIdx + 2] = src.data[srcIdx + 2];
+        dst.data[dstIdx + 3] = src.data[srcIdx + 3];
+      }
+    }
+    return dst;
+  }
+
+  /**
+   * Generates a pixel-level visual difference heatmap between two snapshots.
+   * Highlighted pixels (diff) are marked with fluorescent magenta/red.
+   */
+  async generateVisualDiff(oldSnapshotId: string, newSnapshotId: string): Promise<VisualDiffResult | null> {
+    if (!/^[a-zA-Z0-9\-_]+$/.test(oldSnapshotId) || !/^[a-zA-Z0-9\-_]+$/.test(newSnapshotId)) {
+      return null;
+    }
+
+    const diffFilename = `diff-${oldSnapshotId}-${newSnapshotId}.png`;
+    const metaFilename = `diff-${oldSnapshotId}-${newSnapshotId}.json`;
+    const diffPath = path.join(this.storageDir, diffFilename);
+    const metaPath = path.join(this.storageDir, metaFilename);
+
+    // Return cached diff if both image and metadata exist
+    if (fs.existsSync(diffPath) && fs.existsSync(metaPath)) {
+      try {
+        const cachedMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+        return {
+          diffImageUrl: `/snapshots/diff/${oldSnapshotId}/${newSnapshotId}/visual-diff`,
+          ...cachedMeta,
+        };
+      } catch {
+        this.logger.warn(`Failed to parse cached visual diff meta: ${metaPath}`);
+      }
+    }
+
+    const oldPath = this.getScreenshotPathBySnapshotId(oldSnapshotId);
+    const newPath = this.getScreenshotPathBySnapshotId(newSnapshotId);
+
+    if (!oldPath || !newPath) {
+      return null;
+    }
+
+    try {
+      this.logger.log(`Generating visual pixel diff between ${oldSnapshotId} and ${newSnapshotId}`);
+
+      const oldBuf = fs.readFileSync(oldPath);
+      const newBuf = fs.readFileSync(newPath);
+
+      const oldImg = PNG.sync.read(oldBuf);
+      const newImg = PNG.sync.read(newBuf);
+
+      const width = Math.max(oldImg.width, newImg.width);
+      const height = Math.max(oldImg.height, newImg.height);
+
+      const oldPadded = this.padPng(oldImg, width, height);
+      const newPadded = this.padPng(newImg, width, height);
+
+      const diffImg = new PNG({ width, height });
+
+      const diffPixels = pixelmatch(
+        oldPadded.data,
+        newPadded.data,
+        diffImg.data,
+        width,
+        height,
+        {
+          threshold: 0.1,
+          includeAA: false,
+          diffColor: [255, 0, 80], // High-contrast neon red for visual modification
+        }
+      );
+
+      const totalPixels = width * height;
+      const diffPercentage = Number(((diffPixels / totalPixels) * 100).toFixed(2));
+
+      // Save diff image and meta
+      const diffBuffer = PNG.sync.write(diffImg);
+      fs.writeFileSync(diffPath, diffBuffer);
+
+      const meta = {
+        diffPercentage,
+        diffPixels,
+        totalPixels,
+        width,
+        height,
+      };
+      fs.writeFileSync(metaPath, JSON.stringify(meta), 'utf8');
+
+      this.logger.log(`Visual diff completed: ${diffPercentage}% visual pixels changed (${diffPixels} / ${totalPixels})`);
+
+      return {
+        diffImageUrl: `/snapshots/diff/${oldSnapshotId}/${newSnapshotId}/visual-diff`,
+        ...meta,
+      };
+    } catch (err: any) {
+      this.logger.error(`Error generating visual diff between ${oldSnapshotId} and ${newSnapshotId}: ${err?.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Securely resolves a visual diff screenshot file path, preventing directory traversal.
+   */
+  getVisualDiffPath(oldSnapshotId: string, newSnapshotId: string): string | null {
+    if (!/^[a-zA-Z0-9\-_]+$/.test(oldSnapshotId) || !/^[a-zA-Z0-9\-_]+$/.test(newSnapshotId)) {
+      return null;
+    }
+
+    const diffFilename = `diff-${oldSnapshotId}-${newSnapshotId}.png`;
+    const resolvedPath = path.join(this.storageDir, diffFilename);
+
+    if (!resolvedPath.startsWith(this.storageDir) || !fs.existsSync(resolvedPath)) {
       return null;
     }
 

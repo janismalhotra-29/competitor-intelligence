@@ -54,6 +54,15 @@ export type SnapshotHeader = {
   screenshotUrl?: string | null;
 };
 
+export type VisualDiffMeta = {
+  diffImageUrl: string;
+  diffPercentage: number;
+  diffPixels: number;
+  totalPixels: number;
+  width: number;
+  height: number;
+};
+
 export type ChangeDiffResult = {
   changeId: string;
   competitorId: string;
@@ -64,6 +73,7 @@ export type ChangeDiffResult = {
   newSnapshot: SnapshotHeader | null;
   diffChunks: DiffChunk[];
   aiSummary?: AiSummary | null;
+  visualDiff?: VisualDiffMeta | null;
 };
 
 export type PricingPlan = {
@@ -83,6 +93,3 @@ export type ExecutiveReport = {
   generatedAt: string;
   reportMarkdown: string;
 };
-
-
-

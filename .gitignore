@@ -13,3 +13,5 @@ build/
 *.db
 *.db-journal
 *.tsbuildinfo
+uploads/
+backend/uploads/

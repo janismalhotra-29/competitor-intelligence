@@ -17,4 +17,40 @@ export class ScreenshotsController {
     res.setHeader('Cache-Control', 'public, max-age=86400');
     return res.sendFile(filePath);
   }
+
+  @Get('diff/:oldSnapshotId/:newSnapshotId/visual-diff')
+  async getVisualDiff(
+    @Param('oldSnapshotId') oldSnapshotId: string,
+    @Param('newSnapshotId') newSnapshotId: string,
+    @Res() res: Response,
+  ) {
+    let filePath = this.screenshotService.getVisualDiffPath(oldSnapshotId, newSnapshotId);
+    if (!filePath) {
+      // Generate on demand if both base screenshots exist
+      const diffResult = await this.screenshotService.generateVisualDiff(oldSnapshotId, newSnapshotId);
+      if (diffResult) {
+        filePath = this.screenshotService.getVisualDiffPath(oldSnapshotId, newSnapshotId);
+      }
+    }
+
+    if (!filePath) {
+      throw new NotFoundException('Visual diff not found or screenshots unavailable');
+    }
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.sendFile(filePath);
+  }
+
+  @Get('diff/:oldSnapshotId/:newSnapshotId/meta')
+  async getVisualDiffMeta(
+    @Param('oldSnapshotId') oldSnapshotId: string,
+    @Param('newSnapshotId') newSnapshotId: string,
+  ) {
+    const meta = await this.screenshotService.generateVisualDiff(oldSnapshotId, newSnapshotId);
+    if (!meta) {
+      throw new NotFoundException('Visual diff metadata not available');
+    }
+    return meta;
+  }
 }

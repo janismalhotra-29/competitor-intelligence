@@ -2,12 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ChangeDetectionService } from './change-detection.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AiAnalysisService } from '../ai-analysis/ai-analysis.service.js';
+import { ScreenshotService } from '../screenshots/screenshot.service.js';
 import { NotFoundException } from '@nestjs/common';
 
 describe('ChangeDetectionService', () => {
   let service: ChangeDetectionService;
   let prismaMock: any;
   let aiAnalysisMock: any;
+  let screenshotServiceMock: any;
 
   beforeEach(() => {
     prismaMock = {
@@ -25,9 +27,20 @@ describe('ChangeDetectionService', () => {
     aiAnalysisMock = {
       analyzeChange: vi.fn().mockResolvedValue({}),
     };
+    screenshotServiceMock = {
+      generateVisualDiff: vi.fn().mockResolvedValue({
+        diffImageUrl: '/snapshots/diff/snap-1/snap-2/visual-diff',
+        diffPercentage: 5.5,
+        diffPixels: 1200,
+        totalPixels: 921600,
+        width: 1280,
+        height: 720,
+      }),
+    };
     service = new ChangeDetectionService(
       prismaMock as unknown as PrismaService,
       aiAnalysisMock as unknown as AiAnalysisService,
+      screenshotServiceMock as unknown as ScreenshotService,
     );
   });
 
@@ -79,7 +92,7 @@ describe('ChangeDetectionService', () => {
       await expect(service.getChangeDiff('invalid-id')).rejects.toThrow(NotFoundException);
     });
 
-    it('should return diff chunks and snapshot details', async () => {
+    it('should return diff chunks, snapshot details, and visual diff metadata', async () => {
       const mockChange = {
         id: 'ch-1',
         competitorId: 'comp-1',
@@ -122,6 +135,9 @@ describe('ChangeDetectionService', () => {
       expect(result.hasChanges).toBe(true);
       expect(result.diffChunks.length).toBeGreaterThan(0);
       expect(result.aiSummary?.significance).toBe('HIGH');
+      expect(result.visualDiff).toBeDefined();
+      expect(result.visualDiff?.diffPercentage).toBe(5.5);
+      expect(screenshotServiceMock.generateVisualDiff).toHaveBeenCalledWith('snap-1', 'snap-2');
     });
   });
 });

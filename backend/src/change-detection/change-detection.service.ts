@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as diff from 'diff';
 import { AiAnalysisService } from '../ai-analysis/ai-analysis.service.js';
+import { ScreenshotService } from '../screenshots/screenshot.service.js';
 
 @Injectable()
 export class ChangeDetectionService {
@@ -10,6 +11,7 @@ export class ChangeDetectionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiAnalysis: AiAnalysisService,
+    private readonly screenshotService: ScreenshotService,
   ) {}
 
   /**
@@ -132,6 +134,13 @@ export class ChangeDetectionService {
     this.aiAnalysis.analyzeChange(change.id, oldRawText, newRawText).catch((err) => {
       this.logger.error('Background AI analysis failed', err);
     });
+
+    // Pre-compute visual pixel diff in the background if screenshots are ready
+    if (previousSnapshot.id && latestSnapshot.id) {
+      this.screenshotService.generateVisualDiff(previousSnapshot.id, latestSnapshot.id).catch((err) => {
+        this.logger.warn(`Failed to pre-compute visual diff for change ${change.id}: ${err?.message}`);
+      });
+    }
   }
 
   async getChangesByCompetitorId(competitorId: string) {
@@ -171,6 +180,15 @@ export class ChangeDetectionService {
       removed: !!part.removed,
     }));
 
+    let visualDiff = null;
+    if (oldSnapshot?.id && newSnapshot?.id) {
+      try {
+        visualDiff = await this.screenshotService.generateVisualDiff(oldSnapshot.id, newSnapshot.id);
+      } catch (err: any) {
+        this.logger.warn(`Could not load visual diff for change ${changeId}: ${err?.message}`);
+      }
+    }
+
     return {
       changeId: change.id,
       competitorId: change.competitorId,
@@ -197,6 +215,7 @@ export class ChangeDetectionService {
         : null,
       diffChunks,
       aiSummary: change.aiSummary,
+      visualDiff,
     };
   }
 }
