@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Res, NotFoundException } from '@nestjs/common';
 import type { Response } from 'express';
+import * as fs from 'fs';
 import { ScreenshotService } from './screenshot.service.js';
 
 @Controller('snapshots')
@@ -9,13 +10,13 @@ export class ScreenshotsController {
   @Get(':snapshotId/screenshot')
   async getScreenshot(@Param('snapshotId') snapshotId: string, @Res() res: Response) {
     const filePath = this.screenshotService.getScreenshotPathBySnapshotId(snapshotId);
-    if (!filePath) {
+    if (!filePath || !fs.existsSync(filePath)) {
       throw new NotFoundException('Screenshot not found for this snapshot');
     }
 
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.sendFile(filePath);
+    fs.createReadStream(filePath).pipe(res);
   }
 
   @Get('diff/:oldSnapshotId/:newSnapshotId/visual-diff')
@@ -26,20 +27,19 @@ export class ScreenshotsController {
   ) {
     let filePath = this.screenshotService.getVisualDiffPath(oldSnapshotId, newSnapshotId);
     if (!filePath) {
-      // Generate on demand if both base screenshots exist
       const diffResult = await this.screenshotService.generateVisualDiff(oldSnapshotId, newSnapshotId);
       if (diffResult) {
         filePath = this.screenshotService.getVisualDiffPath(oldSnapshotId, newSnapshotId);
       }
     }
 
-    if (!filePath) {
+    if (!filePath || !fs.existsSync(filePath)) {
       throw new NotFoundException('Visual diff not found or screenshots unavailable');
     }
 
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.sendFile(filePath);
+    fs.createReadStream(filePath).pipe(res);
   }
 
   @Get('diff/:oldSnapshotId/:newSnapshotId/meta')

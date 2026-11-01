@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ScreenshotsController } from './screenshots.controller.js';
 import { ScreenshotService } from './screenshot.service.js';
 import { NotFoundException } from '@nestjs/common';
+import * as fs from 'fs';
+
+vi.mock('fs', async () => {
+  const actual = await vi.importActual<typeof import('fs')>('fs');
+  return {
+    ...actual,
+    existsSync: vi.fn(),
+    createReadStream: vi.fn(),
+  };
+});
 
 describe('ScreenshotsController', () => {
   let controller: ScreenshotsController;
@@ -14,6 +24,7 @@ describe('ScreenshotsController', () => {
       generateVisualDiff: vi.fn(),
     };
     controller = new ScreenshotsController(serviceMock as unknown as ScreenshotService);
+    vi.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -22,32 +33,36 @@ describe('ScreenshotsController', () => {
 
   it('should throw NotFoundException if screenshot file not found', async () => {
     serviceMock.getScreenshotPathBySnapshotId.mockReturnValue(null);
-    const mockRes = { setHeader: vi.fn(), sendFile: vi.fn() } as any;
+    const mockRes = { setHeader: vi.fn() } as any;
 
     await expect(controller.getScreenshot('invalid-snap', mockRes)).rejects.toThrow(
       NotFoundException,
     );
   });
 
-  it('should send file with appropriate headers if screenshot exists', async () => {
+  it('should stream file with appropriate headers if screenshot exists', async () => {
     serviceMock.getScreenshotPathBySnapshotId.mockReturnValue('/path/to/screenshot.png');
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    const mockPipe = vi.fn();
+    vi.mocked(fs.createReadStream).mockReturnValue({ pipe: mockPipe } as any);
+
     const mockRes = {
       setHeader: vi.fn(),
-      sendFile: vi.fn().mockReturnValue(undefined),
     } as any;
 
     await controller.getScreenshot('valid-snap', mockRes);
 
     expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'image/png');
     expect(mockRes.setHeader).toHaveBeenCalledWith('Cache-Control', 'public, max-age=86400');
-    expect(mockRes.sendFile).toHaveBeenCalledWith('/path/to/screenshot.png');
+    expect(fs.createReadStream).toHaveBeenCalledWith('/path/to/screenshot.png');
+    expect(mockPipe).toHaveBeenCalledWith(mockRes);
   });
 
   describe('getVisualDiff', () => {
     it('should throw NotFoundException if diff path and generation both fail', async () => {
       serviceMock.getVisualDiffPath.mockReturnValue(null);
       serviceMock.generateVisualDiff.mockResolvedValue(null);
-      const mockRes = { setHeader: vi.fn(), sendFile: vi.fn() } as any;
+      const mockRes = { setHeader: vi.fn() } as any;
 
       await expect(controller.getVisualDiff('snap-1', 'snap-2', mockRes)).rejects.toThrow(
         NotFoundException,
@@ -56,16 +71,20 @@ describe('ScreenshotsController', () => {
 
     it('should serve visual diff image with correct headers', async () => {
       serviceMock.getVisualDiffPath.mockReturnValue('/path/to/diff.png');
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      const mockPipe = vi.fn();
+      vi.mocked(fs.createReadStream).mockReturnValue({ pipe: mockPipe } as any);
+
       const mockRes = {
         setHeader: vi.fn(),
-        sendFile: vi.fn().mockReturnValue(undefined),
       } as any;
 
       await controller.getVisualDiff('snap-1', 'snap-2', mockRes);
 
       expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'image/png');
       expect(mockRes.setHeader).toHaveBeenCalledWith('Cache-Control', 'public, max-age=86400');
-      expect(mockRes.sendFile).toHaveBeenCalledWith('/path/to/diff.png');
+      expect(fs.createReadStream).toHaveBeenCalledWith('/path/to/diff.png');
+      expect(mockPipe).toHaveBeenCalledWith(mockRes);
     });
   });
 
