@@ -154,7 +154,8 @@ export class ScreenshotService implements OnModuleDestroy {
 
   /**
    * Generates a pixel-level visual difference heatmap between two snapshots.
-   * Highlighted pixels (diff) are marked with fluorescent magenta/red.
+   * Renders onto the 100% sharp current screenshot with fluorescent neon red on altered areas,
+   * avoiding blurry ghosting or overlapping text artifacts.
    */
   async generateVisualDiff(oldSnapshotId: string, newSnapshotId: string): Promise<VisualDiffResult | null> {
     if (!/^[a-zA-Z0-9\-_]+$/.test(oldSnapshotId) || !/^[a-zA-Z0-9\-_]+$/.test(newSnapshotId)) {
@@ -201,20 +202,45 @@ export class ScreenshotService implements OnModuleDestroy {
       const oldPadded = this.padPng(oldImg, width, height);
       const newPadded = this.padPng(newImg, width, height);
 
+      // Create a clean, crisp background using the sharp current screenshot (slightly dimmed for readability)
       const diffImg = new PNG({ width, height });
+      for (let i = 0; i < newPadded.data.length; i += 4) {
+        const r = newPadded.data[i];
+        const g = newPadded.data[i + 1];
+        const b = newPadded.data[i + 2];
+        const a = newPadded.data[i + 3];
 
+        // Soft contrast preservation: keeps background sharp and perfectly legible
+        diffImg.data[i] = Math.round(r * 0.75);
+        diffImg.data[i + 1] = Math.round(g * 0.75);
+        diffImg.data[i + 2] = Math.round(b * 0.75);
+        diffImg.data[i + 3] = a;
+      }
+
+      // Compute exact diff mask using pixelmatch
+      const maskImg = new PNG({ width, height });
       const diffPixels = pixelmatch(
         oldPadded.data,
         newPadded.data,
-        diffImg.data,
+        maskImg.data,
         width,
         height,
         {
-          threshold: 0.1,
+          threshold: 0.2, // Clean threshold eliminates fuzzy sub-pixel anti-aliasing noise
           includeAA: false,
-          diffColor: [255, 0, 80], // High-contrast neon red for visual modification
+          diffMask: true,
         }
       );
+
+      // Paint changed pixels with high-visibility fluorescent neon red
+      for (let i = 0; i < maskImg.data.length; i += 4) {
+        if (maskImg.data[i + 3] > 0 && (maskImg.data[i] > 0 || maskImg.data[i + 1] > 0 || maskImg.data[i + 2] > 0)) {
+          diffImg.data[i] = 255;
+          diffImg.data[i + 1] = 0;
+          diffImg.data[i + 2] = 80;
+          diffImg.data[i + 3] = 255;
+        }
+      }
 
       const totalPixels = width * height;
       const diffPercentage = Number(((diffPixels / totalPixels) * 100).toFixed(2));

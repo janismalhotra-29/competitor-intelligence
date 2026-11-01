@@ -10,8 +10,8 @@ interface Props {
 
 export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
   const [activeTab, setActiveTab] = useState<'text' | 'visual'>('text');
-  const [visualMode, setVisualMode] = useState<'heatmap' | 'side-by-side' | 'slider'>('heatmap');
-  const [sliderOpacity, setSliderOpacity] = useState<number>(50);
+  const [visualMode, setVisualMode] = useState<'side-by-side' | 'slider' | 'heatmap'>('side-by-side');
+  const [sliderPosition, setSliderPosition] = useState<number>(50);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -97,7 +97,7 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
-            <span>📸 Visual Screenshots & Heatmap</span>
+            <span>📸 Visual Screenshots & Slider</span>
             {hasAnyScreenshot && (
               <span className="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse" />
             )}
@@ -214,48 +214,50 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
                 </div>
               )}
 
-              {/* TAB 2: Visual Comparison (Heatmap, Side-by-Side, Onion-Skin) */}
+              {/* TAB 2: Visual Comparison */}
               {activeTab === 'visual' && (
                 <div className="space-y-4">
-                  {/* Visual Sub-mode Controls */}
+                  {/* Mode Selector */}
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="inline-flex p-1 bg-gray-100 dark:bg-zinc-800/70 rounded-xl text-xs font-semibold">
                       <button
-                        onClick={() => setVisualMode('heatmap')}
-                        className={`px-3 py-1.5 rounded-lg transition-all ${
-                          visualMode === 'heatmap'
-                            ? 'bg-white dark:bg-zinc-900 text-purple-600 dark:text-purple-400 shadow-sm'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                        }`}
-                      >
-                        🔥 Diff Heatmap
-                      </button>
-                      <button
                         onClick={() => setVisualMode('side-by-side')}
-                        className={`px-3 py-1.5 rounded-lg transition-all ${
+                        className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
                           visualMode === 'side-by-side'
                             ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'
                             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                         }`}
                       >
-                        👥 Side-by-Side
+                        <span>👥 Side-by-Side</span>
+                        <span className="text-[10px] text-emerald-500 font-bold">(Clean)</span>
                       </button>
                       <button
                         onClick={() => setVisualMode('slider')}
-                        className={`px-3 py-1.5 rounded-lg transition-all ${
+                        className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
                           visualMode === 'slider'
                             ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-sm'
                             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                         }`}
                       >
-                        🎚️ Onion-Skin Slider
+                        <span>🎚️ Split Curtain Slider</span>
+                        <span className="text-[10px] text-blue-500 font-bold">(Sharp)</span>
+                      </button>
+                      <button
+                        onClick={() => setVisualMode('heatmap')}
+                        className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                          visualMode === 'heatmap'
+                            ? 'bg-white dark:bg-zinc-900 text-purple-600 dark:text-purple-400 shadow-sm'
+                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <span>🔥 Diff Heatmap</span>
                       </button>
                     </div>
 
                     {diffData.visualDiff && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3">
                         <span className="font-semibold text-gray-700 dark:text-gray-200">
-                          {diffData.visualDiff.diffPercentage}% Changed
+                          {diffData.visualDiff.diffPercentage}% Changed Area
                         </span>
                         <span>•</span>
                         <span>{diffData.visualDiff.diffPixels.toLocaleString()} altered px</span>
@@ -265,23 +267,158 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
                     )}
                   </div>
 
-                  {/* SUB-VIEW 1: Visual Diff Heatmap */}
+                  {/* MODE 1: Side-by-Side View (100% Crisp & Clean) */}
+                  {visualMode === 'side-by-side' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Baseline Screenshot */}
+                      <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-3 bg-gray-50 dark:bg-zinc-800/40">
+                        <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold">
+                            <span className="w-2 h-2 rounded-full bg-blue-500" />
+                            Baseline (Before)
+                          </span>
+                          <span className="text-[10px] text-gray-500 font-normal">
+                            {diffData.oldSnapshot
+                              ? new Date(diffData.oldSnapshot.capturedAt).toLocaleTimeString()
+                              : 'N/A'}
+                          </span>
+                        </div>
+                        {diffData.oldSnapshot?.screenshotUrl ? (
+                          <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 bg-white">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={`${API_URL}${diffData.oldSnapshot.screenshotUrl}`}
+                              alt="Baseline Screenshot"
+                              className="w-full h-auto object-contain max-h-96 rounded-lg"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
+                            <span>📷 No baseline visual image</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Current Screenshot */}
+                      <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-3 bg-gray-50 dark:bg-zinc-800/40">
+                        <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                            Current (After)
+                          </span>
+                          <span className="text-[10px] text-gray-500 font-normal">
+                            {diffData.newSnapshot
+                              ? new Date(diffData.newSnapshot.capturedAt).toLocaleTimeString()
+                              : 'N/A'}
+                          </span>
+                        </div>
+                        {diffData.newSnapshot?.screenshotUrl ? (
+                          <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 bg-white">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={`${API_URL}${diffData.newSnapshot.screenshotUrl}`}
+                              alt="Current Screenshot"
+                              className="w-full h-auto object-contain max-h-96 rounded-lg"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
+                            <span>📷 Visual capture pending</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MODE 2: Split Curtain Slider (NO BLUR, ZERO GHOSTING!) */}
+                  {visualMode === 'slider' && (
+                    <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/60 space-y-4">
+                      {diffData.oldSnapshot?.screenshotUrl && diffData.newSnapshot?.screenshotUrl ? (
+                        <>
+                          <div className="flex items-center justify-between gap-4 px-2">
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
+                              Baseline (Left: {sliderPosition}%)
+                            </span>
+                            <input
+                              type="range"
+                              min="1"
+                              max="99"
+                              value={sliderPosition}
+                              onChange={(e) => setSliderPosition(Number(e.target.value))}
+                              className="w-full h-2.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-ew-resize accent-blue-600"
+                            />
+                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                              Current (Right: {100 - sliderPosition}%)
+                            </span>
+                          </div>
+
+                          {/* Sharp Split Viewport with Clip Path */}
+                          <div className="relative rounded-xl overflow-hidden border-2 border-gray-300 dark:border-zinc-700 bg-white max-h-[550px] flex justify-center select-none shadow-xl">
+                            {/* Current Image (Full Background) */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={`${API_URL}${diffData.newSnapshot.screenshotUrl}`}
+                              alt="Current Full"
+                              className="w-full h-auto object-contain max-h-[550px] block pointer-events-none"
+                            />
+
+                            {/* Baseline Image (Clipped sharply from left, ZERO BLUR!) */}
+                            <div
+                              className="absolute inset-0 overflow-hidden pointer-events-none"
+                              style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={`${API_URL}${diffData.oldSnapshot.screenshotUrl}`}
+                                alt="Baseline Clipped"
+                                className="w-full h-auto object-contain max-h-[550px] block"
+                              />
+                            </div>
+
+                            {/* Vertical Curtain Divider Handle */}
+                            <div
+                              className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_12px_rgba(0,0,0,0.9)] pointer-events-none z-20"
+                              style={{ left: `${sliderPosition}%` }}
+                            >
+                              <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-blue-600 text-[10px] font-bold text-white shadow-2xl whitespace-nowrap flex items-center gap-1">
+                                <span>◀ Before</span>
+                                <span>|</span>
+                                <span>After ▶</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center font-medium">
+                            ✨ <strong>Zero-Blur Curtain:</strong> Slider drag karne par divider ke left side purani photo aur right side nayi photo 100% sharp dikhegi!
+                          </p>
+                        </>
+                      ) : (
+                        <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
+                          <span>🎚️ Slider requires both baseline and current visual captures</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MODE 3: Visual Diff Heatmap (Crisp Sharp Background) */}
                   {visualMode === 'heatmap' && (
                     <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/60">
                       {hasVisualDiff ? (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
                             <span className="font-semibold text-gray-800 dark:text-gray-200">
-                              Pixel-Match Change Heatmap
+                              High-Contrast Alteration Highlights
                             </span>
                             <div className="flex items-center gap-4 text-[11px]">
                               <span className="flex items-center gap-1.5">
                                 <span className="w-2.5 h-2.5 rounded-full bg-[#ff0050] inline-block shadow-sm" />
-                                <span>Neon Red = Altered Pixels</span>
+                                <span className="font-semibold text-rose-500">Neon Red = Changed Elements</span>
                               </span>
                               <span className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-zinc-600 inline-block shadow-sm" />
-                                <span>Dark = Unchanged Base</span>
+                                <span className="w-2.5 h-2.5 rounded-full bg-zinc-400 inline-block shadow-sm" />
+                                <span>Sharp Background = Current Page</span>
                               </span>
                             </div>
                           </div>
@@ -298,118 +435,6 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
                       ) : (
                         <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
                           <span>🔥 Heatmap requires baseline and current screenshots</span>
-                          <span className="text-[10px] text-gray-500">
-                            Capture both screenshots on subsequent crawls to generate visual heatmaps.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* SUB-VIEW 2: Side-by-Side Comparison */}
-                  {visualMode === 'side-by-side' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Baseline Screenshot */}
-                      <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-3 bg-gray-50 dark:bg-zinc-800/40">
-                        <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
-                          <span>Baseline Visual</span>
-                          <span className="text-[10px] text-gray-500 font-normal">
-                            {diffData.oldSnapshot
-                              ? new Date(diffData.oldSnapshot.capturedAt).toLocaleTimeString()
-                              : 'N/A'}
-                          </span>
-                        </div>
-                        {diffData.oldSnapshot?.screenshotUrl ? (
-                          <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 bg-black/10">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={`${API_URL}${diffData.oldSnapshot.screenshotUrl}`}
-                              alt="Baseline Screenshot"
-                              className="w-full h-auto object-cover max-h-96 rounded-lg"
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
-                            <span>📷 No baseline visual image</span>
-                            <span className="text-[10px] text-gray-500">
-                              Captured before visual screenshot support or unavailable.
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Current Screenshot */}
-                      <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-3 bg-gray-50 dark:bg-zinc-800/40">
-                        <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
-                          <span>Current Visual</span>
-                          <span className="text-[10px] text-gray-500 font-normal">
-                            {diffData.newSnapshot
-                              ? new Date(diffData.newSnapshot.capturedAt).toLocaleTimeString()
-                              : 'N/A'}
-                          </span>
-                        </div>
-                        {diffData.newSnapshot?.screenshotUrl ? (
-                          <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 bg-black/10">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={`${API_URL}${diffData.newSnapshot.screenshotUrl}`}
-                              alt="Current Screenshot"
-                              className="w-full h-auto object-cover max-h-96 rounded-lg"
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
-                            <span>📷 Visual capture pending</span>
-                            <span className="text-[10px] text-gray-500">
-                              Capture will appear automatically after crawl navigation.
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* SUB-VIEW 3: Onion-Skin Interactive Slider */}
-                  {visualMode === 'slider' && (
-                    <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/60 space-y-4">
-                      {diffData.oldSnapshot?.screenshotUrl && diffData.newSnapshot?.screenshotUrl ? (
-                        <>
-                          <div className="flex items-center justify-between gap-4 px-2">
-                            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                              Baseline (0%)
-                            </span>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={sliderOpacity}
-                              onChange={(e) => setSliderOpacity(Number(e.target.value))}
-                              className="w-full h-2 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                            />
-                            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                              Current ({sliderOpacity}%)
-                            </span>
-                          </div>
-
-                          <div className="relative rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 bg-black/10 max-h-[550px] flex justify-center">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={`${API_URL}${diffData.oldSnapshot.screenshotUrl}`}
-                              alt="Baseline Viewport"
-                              className="w-full h-auto object-contain max-h-[550px]"
-                            />
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={`${API_URL}${diffData.newSnapshot.screenshotUrl}`}
-                              alt="Current Viewport"
-                              style={{ opacity: sliderOpacity / 100 }}
-                              className="absolute inset-0 w-full h-auto object-contain max-h-[550px] transition-opacity duration-75"
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
-                          <span>🎚️ Slider requires both baseline and current visual captures</span>
                         </div>
                       )}
                     </div>
