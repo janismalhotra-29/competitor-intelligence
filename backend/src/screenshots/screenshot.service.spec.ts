@@ -86,7 +86,7 @@ describe('ScreenshotService', () => {
       try {
         const diffResult = await service.generateVisualDiff(snap1Id, snap2Id);
         expect(diffResult).toBeDefined();
-        expect(diffResult?.diffImageUrl).toBe(`/snapshots/diff/${snap1Id}/${snap2Id}/visual-diff`);
+        expect(diffResult?.diffImageUrl).toBe(`/snapshots/visual-diff?oldSnapshotId=${snap1Id}&newSnapshotId=${snap2Id}`);
         expect(diffResult?.totalPixels).toBe(400);
         expect(diffResult?.diffPixels).toBe(25);
         expect(diffResult?.diffPercentage).toBe(6.25);

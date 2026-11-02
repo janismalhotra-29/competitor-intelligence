@@ -29,7 +29,7 @@ describe('ChangeDetectionService', () => {
     };
     screenshotServiceMock = {
       generateVisualDiff: vi.fn().mockResolvedValue({
-        diffImageUrl: '/snapshots/diff/snap-1/snap-2/visual-diff',
+        diffImageUrl: '/snapshots/visual-diff?oldSnapshotId=snap-1&newSnapshotId=snap-2',
         diffPercentage: 5.5,
         diffPixels: 1200,
         totalPixels: 921600,

@@ -172,7 +172,7 @@ export class ScreenshotService implements OnModuleDestroy {
       try {
         const cachedMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
         return {
-          diffImageUrl: `/snapshots/diff/${oldSnapshotId}/${newSnapshotId}/visual-diff`,
+          diffImageUrl: `/snapshots/visual-diff?oldSnapshotId=${oldSnapshotId}&newSnapshotId=${newSnapshotId}`,
           ...cachedMeta,
         };
       } catch {
@@ -261,7 +261,7 @@ export class ScreenshotService implements OnModuleDestroy {
       this.logger.log(`Visual diff completed: ${diffPercentage}% visual pixels changed (${diffPixels} / ${totalPixels})`);
 
       return {
-        diffImageUrl: `/snapshots/diff/${oldSnapshotId}/${newSnapshotId}/visual-diff`,
+        diffImageUrl: `/snapshots/visual-diff?oldSnapshotId=${oldSnapshotId}&newSnapshotId=${newSnapshotId}`,
         ...meta,
       };
     } catch (err: any) {
