@@ -78,24 +78,4 @@ export class ScreenshotsController {
     }
     return meta;
   }
-
-  /**
-   * Legacy path-parameter routes maintained for backwards compatibility
-   */
-  @Get('diff/:oldSnapshotId/:newSnapshotId/visual-diff')
-  async getVisualDiffByPath(
-    @Param('oldSnapshotId') oldSnapshotId: string,
-    @Param('newSnapshotId') newSnapshotId: string,
-    @Res() res: Response,
-  ) {
-    return this.getVisualDiff(oldSnapshotId, newSnapshotId, '', '', res);
-  }
-
-  @Get('diff/:oldSnapshotId/:newSnapshotId/meta')
-  async getVisualDiffMetaByPath(
-    @Param('oldSnapshotId') oldSnapshotId: string,
-    @Param('newSnapshotId') newSnapshotId: string,
-  ) {
-    return this.getVisualDiffMeta(oldSnapshotId, newSnapshotId, '', '');
-  }
 }

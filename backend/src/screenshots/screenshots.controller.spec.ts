@@ -105,18 +105,6 @@ describe('ScreenshotsController', () => {
 
       expect(fs.createReadStream).toHaveBeenCalledWith('/path/to/diff.png');
     });
-
-    it('should delegate to getVisualDiff in getVisualDiffByPath', async () => {
-      serviceMock.getVisualDiffPath.mockReturnValue('/path/to/diff.png');
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      const mockPipe = vi.fn();
-      vi.mocked(fs.createReadStream).mockReturnValue({ pipe: mockPipe } as any);
-
-      const mockRes = { setHeader: vi.fn() } as any;
-      await controller.getVisualDiffByPath('snap-1', 'snap-2', mockRes);
-
-      expect(fs.createReadStream).toHaveBeenCalledWith('/path/to/diff.png');
-    });
   });
 
   describe('getVisualDiffMeta', () => {
@@ -144,21 +132,6 @@ describe('ScreenshotsController', () => {
     it('should throw NotFoundException if diff meta is unavailable', async () => {
       serviceMock.generateVisualDiff.mockResolvedValue(null);
       await expect(controller.getVisualDiffMeta('s1', 's2', '', '')).rejects.toThrow(NotFoundException);
-    });
-
-    it('should delegate to getVisualDiffMeta in getVisualDiffMetaByPath', async () => {
-      const mockMeta = {
-        diffImageUrl: '/snapshots/visual-diff?oldSnapshotId=s1&newSnapshotId=s2',
-        diffPercentage: 3.45,
-        diffPixels: 500,
-        totalPixels: 10000,
-        width: 100,
-        height: 100,
-      };
-      serviceMock.generateVisualDiff.mockResolvedValue(mockMeta);
-
-      const result = await controller.getVisualDiffMetaByPath('s1', 's2');
-      expect(result).toEqual(mockMeta);
     });
   });
 });
