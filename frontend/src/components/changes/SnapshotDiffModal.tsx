@@ -1,6 +1,33 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import type { ChangeDiffResult } from '@/types';
 import { API_URL } from '@/lib/api';
+import {
+  Stack,
+  Group,
+  Heading,
+  Text,
+  Badge,
+  Button,
+  IconButton,
+  Icon,
+  Divider,
+  Alert,
+  Spinner,
+} from '@xenon-kit/web';
+import {
+  X,
+  FileText,
+  Camera,
+  Columns,
+  Sliders,
+  Flame,
+  Sparkle,
+  Lightning,
+  CaretLeft,
+  CaretRight,
+} from '@phosphor-icons/react';
 
 interface Props {
   diffData: ChangeDiffResult | null;
@@ -28,152 +55,283 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
   const hasVisualDiff = Boolean(diffData?.visualDiff?.diffImageUrl);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 'var(--x-space-6)',
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}
+      onClick={onClose}
+    >
       <div
-        className="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: '1020px',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: 'var(--x-surface)',
+          border: '1px solid var(--x-border)',
+          borderRadius: 'var(--x-radius)',
+          overflow: 'hidden',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                Snapshot Diff Inspector
-              </h3>
-              {diffData?.aiSummary && (
-                <span
-                  className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
-                    diffData.aiSummary.significance === 'HIGH'
-                      ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                      : diffData.aiSummary.significance === 'MEDIUM'
-                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                      : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                  }`}
-                >
-                  {diffData.aiSummary.significance} IMPACT
-                </span>
-              )}
-              {diffData?.visualDiff && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                  ⚡ {diffData.visualDiff.diffPercentage}% VISUAL DIFF
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Comparing snapshots captured around{' '}
-              {diffData ? new Date(diffData.detectedAt).toLocaleString() : ''}
-            </p>
-          </div>
+        <div
+          style={{
+            padding: 'var(--x-space-4) var(--x-space-6)',
+            borderBottom: '1px solid var(--x-border)',
+            backgroundColor: 'var(--x-surface-2)',
+          }}
+        >
+          <Group justify="between" align="center">
+            <Stack gap={4}>
+              <Group gap={8} align="center">
+                <Heading level={2} styleKey="title3" weight={300}>
+                  Snapshot Diff Inspector
+                </Heading>
+                {diffData?.aiSummary && (
+                  <Badge
+                    variant="subtle"
+                    tone={
+                      diffData.aiSummary.significance === 'HIGH'
+                        ? 'danger'
+                        : diffData.aiSummary.significance === 'MEDIUM'
+                        ? 'warning'
+                        : 'accent'
+                    }
+                  >
+                    <Icon size="xs">
+                      <Sparkle weight="thin" />
+                    </Icon>
+                    {diffData.aiSummary.significance} IMPACT
+                  </Badge>
+                )}
+                {diffData?.visualDiff && (
+                  <Badge variant="subtle" tone="accent">
+                    <Icon size="xs">
+                      <Lightning weight="thin" />
+                    </Icon>
+                    {diffData.visualDiff.diffPercentage}% VISUAL DIFF
+                  </Badge>
+                )}
+              </Group>
+              <Text styleKey="footnote" tone="muted" weight={300}>
+                Comparing snapshots captured around{' '}
+                {diffData ? new Date(diffData.detectedAt).toLocaleString() : ''}
+              </Text>
+            </Stack>
 
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-            title="Close dialog"
-            aria-label="Close"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+            <IconButton ariaLabel="Close dialog" variant="ghost" onClick={onClose}>
+              <Icon size="sm">
+                <X weight="thin" />
+              </Icon>
+            </IconButton>
+          </Group>
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex border-b border-gray-200 dark:border-zinc-800 px-6 bg-gray-100/50 dark:bg-zinc-800/20 text-xs font-medium">
+        {/* Tab Selection Row */}
+        <div
+          style={{
+            display: 'flex',
+            borderBottom: '1px solid var(--x-border)',
+            backgroundColor: 'var(--x-surface)',
+            padding: '0 var(--x-space-6)',
+            gap: 'var(--x-space-2)',
+          }}
+        >
           <button
+            type="button"
             onClick={() => setActiveTab('text')}
-            className={`py-2.5 px-4 border-b-2 transition-colors flex items-center gap-1.5 ${
-              activeTab === 'text'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-semibold'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--x-space-2)',
+              padding: 'var(--x-space-3) var(--x-space-4)',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'text' ? '1px solid var(--x-accent)' : '1px solid transparent',
+              color: activeTab === 'text' ? 'var(--x-accent)' : 'var(--x-text-muted)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '13px',
+              fontWeight: 300,
+              transition: 'color var(--x-dur-base) var(--x-ease-standard)',
+            }}
           >
-            <span>📝 Text Differences</span>
+            <Icon size="sm">
+              <FileText weight="thin" />
+            </Icon>
+            <span>Text Differences</span>
           </button>
+
           <button
+            type="button"
             onClick={() => setActiveTab('visual')}
-            className={`py-2.5 px-4 border-b-2 transition-colors flex items-center gap-1.5 ${
-              activeTab === 'visual'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-semibold'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--x-space-2)',
+              padding: 'var(--x-space-3) var(--x-space-4)',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'visual' ? '1px solid var(--x-accent)' : '1px solid transparent',
+              color: activeTab === 'visual' ? 'var(--x-accent)' : 'var(--x-text-muted)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '13px',
+              fontWeight: 300,
+              transition: 'color var(--x-dur-base) var(--x-ease-standard)',
+            }}
           >
-            <span>📸 Visual Screenshots & Slider</span>
+            <Icon size="sm">
+              <Camera weight="thin" />
+            </Icon>
+            <span>Visual Screenshots & Slider</span>
             {hasAnyScreenshot && (
-              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse" />
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--x-accent)',
+                  display: 'inline-block',
+                }}
+              />
             )}
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: 'var(--x-space-6)',
+          }}
+        >
           {loading ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-3 text-gray-500">
-              <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm">Calculating snapshot differences...</p>
+            <div
+              style={{
+                padding: 'var(--x-space-10) 0',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--x-space-3)',
+                color: 'var(--x-text-muted)',
+              }}
+            >
+              <Spinner size="md" />
+              <Text styleKey="callout" tone="muted" weight={300}>
+                Calculating snapshot differences...
+              </Text>
             </div>
           ) : diffData ? (
-            <>
-              {/* AI Insight Box */}
+            <Stack gap={20}>
+              {/* AI Insight Alert */}
               {diffData.aiSummary && (
-                <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-sm font-semibold text-blue-900 dark:text-blue-300">
-                      ✨ AI Business Summary
-                    </span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed italic">
+                <Alert tone="accent" variant="subtle" title="AI Business Summary">
+                  <Text styleKey="callout" weight={300}>
                     {diffData.aiSummary.analysis}
-                  </p>
-                </div>
+                  </Text>
+                </Alert>
               )}
 
-              {/* Snapshot Comparison Metadata Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-800/40 border border-gray-200/70 dark:border-zinc-800">
-                  <span className="font-semibold text-gray-500 uppercase tracking-wider text-[10px]">
-                    Previous Snapshot (Baseline)
-                  </span>
-                  <div className="mt-1 font-medium text-gray-800 dark:text-gray-200 truncate">
-                    {diffData.oldSnapshot?.pageTitle || 'Initial State'}
+              {/* Snapshot Metadata Row */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: 'var(--x-space-3)',
+                }}
+              >
+                <div
+                  style={{
+                    padding: 'var(--x-space-3) var(--x-space-4)',
+                    borderRadius: 'var(--x-radius)',
+                    backgroundColor: 'var(--x-surface-2)',
+                    border: '1px solid var(--x-border)',
+                  }}
+                >
+                  <Text styleKey="caption1" tone="muted" weight={300}>
+                    PREVIOUS SNAPSHOT (BASELINE)
+                  </Text>
+                  <div style={{ marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Text styleKey="body" weight={300}>
+                      {diffData.oldSnapshot?.pageTitle || 'Initial State'}
+                    </Text>
                   </div>
-                  <div className="text-gray-500 dark:text-gray-400 mt-0.5">
+                  <Text styleKey="footnote" tone="muted" weight={300}>
                     {diffData.oldSnapshot
                       ? new Date(diffData.oldSnapshot.capturedAt).toLocaleString()
                       : 'No previous baseline'}
-                  </div>
+                  </Text>
                 </div>
 
-                <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-800/40 border border-gray-200/70 dark:border-zinc-800">
-                  <span className="font-semibold text-gray-500 uppercase tracking-wider text-[10px]">
-                    Current Snapshot (Updated)
-                  </span>
-                  <div className="mt-1 font-medium text-gray-800 dark:text-gray-200 truncate">
-                    {diffData.newSnapshot?.pageTitle || 'Current State'}
+                <div
+                  style={{
+                    padding: 'var(--x-space-3) var(--x-space-4)',
+                    borderRadius: 'var(--x-radius)',
+                    backgroundColor: 'var(--x-surface-2)',
+                    border: '1px solid var(--x-border)',
+                  }}
+                >
+                  <Text styleKey="caption1" tone="muted" weight={300}>
+                    CURRENT SNAPSHOT (UPDATED)
+                  </Text>
+                  <div style={{ marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Text styleKey="body" weight={300}>
+                      {diffData.newSnapshot?.pageTitle || 'Current State'}
+                    </Text>
                   </div>
-                  <div className="text-gray-500 dark:text-gray-400 mt-0.5">
+                  <Text styleKey="footnote" tone="muted" weight={300}>
                     {diffData.newSnapshot
                       ? new Date(diffData.newSnapshot.capturedAt).toLocaleString()
                       : 'Current'}
-                  </div>
+                  </Text>
                 </div>
               </div>
 
               {/* TAB 1: Text Differences */}
               {activeTab === 'text' && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                <Stack gap={10}>
+                  <Group justify="between" align="center">
+                    <Heading level={3} styleKey="headline" weight={300}>
                       Line-by-Line Content Differences
-                    </span>
-                    <span className="text-[11px] text-gray-500">
+                    </Heading>
+                    <Text styleKey="footnote" tone="muted" weight={300}>
                       {diffData.diffSummary || 'Content comparison'}
-                    </span>
-                  </div>
+                    </Text>
+                  </Group>
 
-                  <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-900 font-mono text-xs overflow-x-auto max-h-96 p-3 space-y-0.5 select-text">
+                  <div
+                    style={{
+                      borderRadius: 'var(--x-radius)',
+                      border: '1px solid var(--x-border)',
+                      backgroundColor: 'var(--x-surface-2)',
+                      fontFamily: 'monospace',
+                      fontSize: '12px',
+                      overflowX: 'auto',
+                      maxHeight: '380px',
+                      padding: 'var(--x-space-3)',
+                      userSelect: 'text',
+                    }}
+                  >
                     {diffData.diffChunks.length === 0 ? (
-                      <div className="text-gray-400 text-center py-6">
-                        No substantive text differences detected.
+                      <div style={{ textAlign: 'center', padding: 'var(--x-space-6)', color: 'var(--x-text-muted)' }}>
+                        <Text styleKey="footnote" tone="muted" weight={300}>
+                          No substantive text differences detected.
+                        </Text>
                       </div>
                     ) : (
                       diffData.diffChunks.map((chunk, index) => {
@@ -181,9 +339,16 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
                           return (
                             <div
                               key={index}
-                              className="bg-emerald-950/60 text-emerald-400 px-3 py-0.5 rounded border-l-2 border-emerald-500 whitespace-pre-wrap break-words"
+                              style={{
+                                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                color: '#4ade80',
+                                padding: '2px 8px',
+                                borderLeft: '2px solid #22c55e',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                              }}
                             >
-                              <span className="text-emerald-600 select-none mr-2">+</span>
+                              <span style={{ color: '#16a34a', userSelect: 'none', marginRight: '8px' }}>+</span>
                               {chunk.value}
                             </div>
                           );
@@ -192,9 +357,16 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
                           return (
                             <div
                               key={index}
-                              className="bg-rose-950/60 text-rose-400 px-3 py-0.5 rounded border-l-2 border-rose-500 whitespace-pre-wrap break-words"
+                              style={{
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                color: '#f87171',
+                                padding: '2px 8px',
+                                borderLeft: '2px solid #ef4444',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                              }}
                             >
-                              <span className="text-rose-600 select-none mr-2">-</span>
+                              <span style={{ color: '#dc2626', userSelect: 'none', marginRight: '8px' }}>-</span>
                               {chunk.value}
                             </div>
                           );
@@ -202,257 +374,503 @@ export function SnapshotDiffModal({ diffData, loading, onClose }: Props) {
                         return (
                           <div
                             key={index}
-                            className="text-gray-400 px-3 py-0.5 whitespace-pre-wrap break-words"
+                            style={{
+                              color: 'var(--x-text-muted)',
+                              padding: '2px 8px',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                            }}
                           >
-                            <span className="text-gray-600 select-none mr-2"> </span>
+                            <span style={{ color: 'var(--x-border)', userSelect: 'none', marginRight: '8px' }}> </span>
                             {chunk.value}
                           </div>
                         );
                       })
                     )}
                   </div>
-                </div>
+                </Stack>
               )}
 
               {/* TAB 2: Visual Comparison */}
               {activeTab === 'visual' && (
-                <div className="space-y-4">
-                  {/* Mode Selector */}
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="inline-flex p-1 bg-gray-100 dark:bg-zinc-800/70 rounded-xl text-xs font-semibold">
-                      <button
+                <Stack gap={16}>
+                  {/* Mode Selector Row */}
+                  <Group justify="between" align="center" wrap="wrap" gap={12}>
+                    <Group gap={6}>
+                      <Button
+                        size="sm"
+                        variant={visualMode === 'side-by-side' ? 'accent' : 'subtle'}
                         onClick={() => setVisualMode('side-by-side')}
-                        className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                          visualMode === 'side-by-side'
-                            ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                        }`}
                       >
-                        <span>👥 Side-by-Side</span>
-                        <span className="text-[10px] text-emerald-500 font-bold">(Clean)</span>
-                      </button>
-                      <button
+                        <Icon size="xs">
+                          <Columns weight="thin" />
+                        </Icon>
+                        Side-by-Side
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={visualMode === 'slider' ? 'accent' : 'subtle'}
                         onClick={() => setVisualMode('slider')}
-                        className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                          visualMode === 'slider'
-                            ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                        }`}
                       >
-                        <span>🎚️ Split Curtain Slider</span>
-                        <span className="text-[10px] text-blue-500 font-bold">(Sharp)</span>
-                      </button>
-                      <button
+                        <Icon size="xs">
+                          <Sliders weight="thin" />
+                        </Icon>
+                        Split Curtain Slider
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={visualMode === 'heatmap' ? 'accent' : 'subtle'}
                         onClick={() => setVisualMode('heatmap')}
-                        className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                          visualMode === 'heatmap'
-                            ? 'bg-white dark:bg-zinc-900 text-purple-600 dark:text-purple-400 shadow-sm'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                        }`}
                       >
-                        <span>🔥 Diff Heatmap</span>
-                      </button>
-                    </div>
+                        <Icon size="xs">
+                          <Flame weight="thin" />
+                        </Icon>
+                        Diff Heatmap
+                      </Button>
+                    </Group>
 
                     {diffData.visualDiff && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3">
-                        <span className="font-semibold text-gray-700 dark:text-gray-200">
+                      <Group gap={8} align="center">
+                        <Text styleKey="footnote" weight={300}>
                           {diffData.visualDiff.diffPercentage}% Changed Area
-                        </span>
-                        <span>•</span>
-                        <span>{diffData.visualDiff.diffPixels.toLocaleString()} altered px</span>
-                        <span>•</span>
-                        <span>{diffData.visualDiff.width}×{diffData.visualDiff.height}</span>
-                      </div>
+                        </Text>
+                        <Text styleKey="footnote" tone="muted" weight={300}>
+                          •
+                        </Text>
+                        <Text styleKey="footnote" tone="muted" weight={300}>
+                          {diffData.visualDiff.diffPixels.toLocaleString()} altered px
+                        </Text>
+                        <Text styleKey="footnote" tone="muted" weight={300}>
+                          •
+                        </Text>
+                        <Text styleKey="footnote" tone="muted" weight={300}>
+                          {diffData.visualDiff.width}×{diffData.visualDiff.height}
+                        </Text>
+                      </Group>
                     )}
-                  </div>
+                  </Group>
 
-                  {/* MODE 1: Side-by-Side View (100% Crisp & Clean) */}
+                  {/* MODE 1: Side-by-Side View */}
                   {visualMode === 'side-by-side' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                        gap: 'var(--x-space-4)',
+                      }}
+                    >
                       {/* Baseline Screenshot */}
-                      <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-3 bg-gray-50 dark:bg-zinc-800/40">
-                        <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
-                          <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold">
-                            <span className="w-2 h-2 rounded-full bg-blue-500" />
-                            Baseline (Before)
-                          </span>
-                          <span className="text-[10px] text-gray-500 font-normal">
+                      <div
+                        style={{
+                          borderRadius: 'var(--x-radius)',
+                          border: '1px solid var(--x-border)',
+                          padding: 'var(--x-space-3)',
+                          backgroundColor: 'var(--x-surface-2)',
+                        }}
+                      >
+                        <Group justify="between" align="center" style={{ marginBottom: '8px' }}>
+                          <Group gap={6} align="center">
+                            <span
+                              style={{
+                                width: '6px',
+                                height: '6px',
+                                borderRadius: '50%',
+                                backgroundColor: 'var(--x-accent)',
+                              }}
+                            />
+                            <Text styleKey="callout" weight={300}>
+                              Baseline (Before)
+                            </Text>
+                          </Group>
+                          <Text styleKey="caption1" tone="muted" weight={300}>
                             {diffData.oldSnapshot
                               ? new Date(diffData.oldSnapshot.capturedAt).toLocaleTimeString()
                               : 'N/A'}
-                          </span>
-                        </div>
+                          </Text>
+                        </Group>
+
                         {diffData.oldSnapshot?.screenshotUrl ? (
-                          <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 bg-white">
+                          <div
+                            style={{
+                              borderRadius: 'calc(var(--x-radius) - 2px)',
+                              overflow: 'hidden',
+                              border: '1px solid var(--x-border)',
+                              backgroundColor: 'var(--x-bg)',
+                            }}
+                          >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={`${API_URL}${diffData.oldSnapshot.screenshotUrl}`}
                               alt="Baseline Screenshot"
-                              className="w-full h-auto object-contain max-h-96 rounded-lg"
+                              style={{ width: '100%', height: 'auto', maxHeight: '380px', objectFit: 'contain', display: 'block' }}
                             />
                           </div>
                         ) : (
-                          <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
-                            <span>📷 No baseline visual image</span>
+                          <div
+                            style={{
+                              height: '240px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: 'var(--x-radius)',
+                              border: '1px dashed var(--x-border)',
+                              color: 'var(--x-text-muted)',
+                            }}
+                          >
+                            <Icon size="md">
+                              <Camera weight="thin" />
+                            </Icon>
+                            <Text styleKey="footnote" tone="muted" weight={300}>
+                              No baseline visual capture
+                            </Text>
                           </div>
                         )}
                       </div>
 
                       {/* Current Screenshot */}
-                      <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-3 bg-gray-50 dark:bg-zinc-800/40">
-                        <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
-                          <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                            Current (After)
-                          </span>
-                          <span className="text-[10px] text-gray-500 font-normal">
+                      <div
+                        style={{
+                          borderRadius: 'var(--x-radius)',
+                          border: '1px solid var(--x-border)',
+                          padding: 'var(--x-space-3)',
+                          backgroundColor: 'var(--x-surface-2)',
+                        }}
+                      >
+                        <Group justify="between" align="center" style={{ marginBottom: '8px' }}>
+                          <Group gap={6} align="center">
+                            <span
+                              style={{
+                                width: '6px',
+                                height: '6px',
+                                borderRadius: '50%',
+                                backgroundColor: 'var(--x-accent)',
+                              }}
+                            />
+                            <Text styleKey="callout" weight={300}>
+                              Current (After)
+                            </Text>
+                          </Group>
+                          <Text styleKey="caption1" tone="muted" weight={300}>
                             {diffData.newSnapshot
                               ? new Date(diffData.newSnapshot.capturedAt).toLocaleTimeString()
                               : 'N/A'}
-                          </span>
-                        </div>
+                          </Text>
+                        </Group>
+
                         {diffData.newSnapshot?.screenshotUrl ? (
-                          <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 bg-white">
+                          <div
+                            style={{
+                              borderRadius: 'calc(var(--x-radius) - 2px)',
+                              overflow: 'hidden',
+                              border: '1px solid var(--x-border)',
+                              backgroundColor: 'var(--x-bg)',
+                            }}
+                          >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={`${API_URL}${diffData.newSnapshot.screenshotUrl}`}
                               alt="Current Screenshot"
-                              className="w-full h-auto object-contain max-h-96 rounded-lg"
+                              style={{ width: '100%', height: 'auto', maxHeight: '380px', objectFit: 'contain', display: 'block' }}
                             />
                           </div>
                         ) : (
-                          <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
-                            <span>📷 Visual capture pending</span>
+                          <div
+                            style={{
+                              height: '240px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: 'var(--x-radius)',
+                              border: '1px dashed var(--x-border)',
+                              color: 'var(--x-text-muted)',
+                            }}
+                          >
+                            <Icon size="md">
+                              <Camera weight="thin" />
+                            </Icon>
+                            <Text styleKey="footnote" tone="muted" weight={300}>
+                              Visual capture pending
+                            </Text>
                           </div>
                         )}
                       </div>
                     </div>
                   )}
 
-                  {/* MODE 2: Split Curtain Slider (NO BLUR, ZERO GHOSTING!) */}
+                  {/* MODE 2: Split Curtain Slider (Sharp, zero-blur) */}
                   {visualMode === 'slider' && (
-                    <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/60 space-y-4">
+                    <div
+                      style={{
+                        borderRadius: 'var(--x-radius)',
+                        border: '1px solid var(--x-border)',
+                        padding: 'var(--x-space-4)',
+                        backgroundColor: 'var(--x-surface-2)',
+                      }}
+                    >
                       {diffData.oldSnapshot?.screenshotUrl && diffData.newSnapshot?.screenshotUrl ? (
-                        <>
-                          <div className="flex items-center justify-between gap-4 px-2">
-                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
+                        <Stack gap={14}>
+                          <Group justify="between" align="center" gap={12}>
+                            <Text styleKey="footnote" weight={300}>
                               Baseline (Left: {sliderPosition}%)
-                            </span>
+                            </Text>
                             <input
                               type="range"
                               min="1"
                               max="99"
                               value={sliderPosition}
                               onChange={(e) => setSliderPosition(Number(e.target.value))}
-                              className="w-full h-2.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-ew-resize accent-blue-600"
+                              style={{
+                                flex: 1,
+                                accentColor: 'var(--x-accent)',
+                                cursor: 'ew-resize',
+                              }}
                             />
-                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                            <Text styleKey="footnote" weight={300}>
                               Current (Right: {100 - sliderPosition}%)
-                            </span>
-                          </div>
+                            </Text>
+                          </Group>
 
                           {/* Sharp Split Viewport with Clip Path */}
-                          <div className="relative rounded-xl overflow-hidden border-2 border-gray-300 dark:border-zinc-700 bg-white max-h-[550px] flex justify-center select-none shadow-xl">
+                          <div
+                            style={{
+                              position: 'relative',
+                              borderRadius: 'calc(var(--x-radius) - 2px)',
+                              overflow: 'hidden',
+                              border: '1px solid var(--x-border)',
+                              backgroundColor: 'var(--x-bg)',
+                              maxHeight: '520px',
+                              display: 'flex',
+                              justifyContent: 'center',
+                              userSelect: 'none',
+                            }}
+                          >
                             {/* Current Image (Full Background) */}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={`${API_URL}${diffData.newSnapshot.screenshotUrl}`}
                               alt="Current Full"
-                              className="w-full h-auto object-contain max-h-[550px] block pointer-events-none"
+                              style={{
+                                width: '100%',
+                                height: 'auto',
+                                maxHeight: '520px',
+                                objectFit: 'contain',
+                                display: 'block',
+                                pointerEvents: 'none',
+                              }}
                             />
 
-                            {/* Baseline Image (Clipped sharply from left, ZERO BLUR!) */}
+                            {/* Baseline Image (Clipped sharply from left, ZERO BLUR) */}
                             <div
-                              className="absolute inset-0 overflow-hidden pointer-events-none"
-                              style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                overflow: 'hidden',
+                                pointerEvents: 'none',
+                                clipPath: `inset(0 ${100 - sliderPosition}% 0 0)`,
+                              }}
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={`${API_URL}${diffData.oldSnapshot.screenshotUrl}`}
                                 alt="Baseline Clipped"
-                                className="w-full h-auto object-contain max-h-[550px] block"
+                                style={{
+                                  width: '100%',
+                                  height: 'auto',
+                                  maxHeight: '520px',
+                                  objectFit: 'contain',
+                                  display: 'block',
+                                }}
                               />
                             </div>
 
-                            {/* Vertical Curtain Divider Handle */}
+                            {/* Vertical Curtain Hairline */}
                             <div
-                              className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_12px_rgba(0,0,0,0.9)] pointer-events-none z-20"
-                              style={{ left: `${sliderPosition}%` }}
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                bottom: 0,
+                                width: '1px',
+                                backgroundColor: 'var(--x-accent)',
+                                left: `${sliderPosition}%`,
+                                pointerEvents: 'none',
+                                zIndex: 20,
+                              }}
                             >
-                              <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-blue-600 text-[10px] font-bold text-white shadow-2xl whitespace-nowrap flex items-center gap-1">
-                                <span>◀ Before</span>
-                                <span>|</span>
-                                <span>After ▶</span>
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '50%',
+                                  transform: 'translate(-50%, -50%)',
+                                  padding: '2px 8px',
+                                  borderRadius: 'var(--x-radius)',
+                                  backgroundColor: 'var(--x-surface)',
+                                  border: '1px solid var(--x-border)',
+                                  whiteSpace: 'nowrap',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '11px',
+                                  color: 'var(--x-text)',
+                                }}
+                              >
+                                <Icon size="xs">
+                                  <CaretLeft weight="thin" />
+                                </Icon>
+                                <span>Before</span>
+                                <span style={{ opacity: 0.4 }}>|</span>
+                                <span>After</span>
+                                <Icon size="xs">
+                                  <CaretRight weight="thin" />
+                                </Icon>
                               </div>
                             </div>
                           </div>
 
-                          <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center font-medium">
-                            ✨ <strong>Zero-Blur Curtain:</strong> Slider drag karne par divider ke left side purani photo aur right side nayi photo 100% sharp dikhegi!
-                          </p>
-                        </>
+                          <div style={{ textAlign: 'center' }}>
+                            <Text styleKey="caption1" tone="muted" weight={300}>
+                              Zero-Blur Curtain: Drag slider horizontally to compare unaltered baseline vs updated layout
+                            </Text>
+                          </div>
+                        </Stack>
                       ) : (
-                        <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
-                          <span>🎚️ Slider requires both baseline and current visual captures</span>
+                        <div
+                          style={{
+                            height: '240px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 'var(--x-radius)',
+                            border: '1px dashed var(--x-border)',
+                            color: 'var(--x-text-muted)',
+                          }}
+                        >
+                          <Icon size="md">
+                            <Sliders weight="thin" />
+                          </Icon>
+                          <Text styleKey="footnote" tone="muted" weight={300}>
+                            Curtain slider requires both baseline and current visual captures
+                          </Text>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* MODE 3: Visual Diff Heatmap (Crisp Sharp Background) */}
+                  {/* MODE 3: Visual Diff Heatmap */}
                   {visualMode === 'heatmap' && (
-                    <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/60">
+                    <div
+                      style={{
+                        borderRadius: 'var(--x-radius)',
+                        border: '1px solid var(--x-border)',
+                        padding: 'var(--x-space-4)',
+                        backgroundColor: 'var(--x-surface-2)',
+                      }}
+                    >
                       {hasVisualDiff ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
-                            <span className="font-semibold text-gray-800 dark:text-gray-200">
-                              High-Contrast Alteration Highlights
-                            </span>
-                            <div className="flex items-center gap-4 text-[11px]">
-                              <span className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#ff0050] inline-block shadow-sm" />
-                                <span className="font-semibold text-rose-500">Neon Red = Changed Elements</span>
-                              </span>
-                              <span className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-zinc-400 inline-block shadow-sm" />
-                                <span>Sharp Background = Current Page</span>
-                              </span>
-                            </div>
-                          </div>
+                        <Stack gap={12}>
+                          <Group justify="between" align="center">
+                            <Heading level={3} styleKey="headline" weight={300}>
+                              Pixel-Diff Alteration Highlights
+                            </Heading>
+                            <Group gap={12}>
+                              <Group gap={4} align="center">
+                                <span
+                                  style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#ff0050',
+                                  }}
+                                />
+                                <Text styleKey="caption1" tone="muted" weight={300}>
+                                  Neon Red = Changed Elements
+                                </Text>
+                              </Group>
+                              <Group gap={4} align="center">
+                                <span
+                                  style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'var(--x-text-muted)',
+                                  }}
+                                />
+                                <Text styleKey="caption1" tone="muted" weight={300}>
+                                  Grayscale = Unchanged Structure
+                                </Text>
+                              </Group>
+                            </Group>
+                          </Group>
 
-                          <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 bg-black/90 p-2 flex justify-center">
+                          <div
+                            style={{
+                              borderRadius: 'calc(var(--x-radius) - 2px)',
+                              overflow: 'hidden',
+                              border: '1px solid var(--x-border)',
+                              backgroundColor: 'var(--x-bg)',
+                              padding: 'var(--x-space-2)',
+                              display: 'flex',
+                              justifyContent: 'center',
+                            }}
+                          >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={`${API_URL}${diffData.visualDiff!.diffImageUrl}`}
                               alt="Visual Diff Heatmap"
-                              className="w-full h-auto object-contain max-h-[550px] rounded"
+                              style={{
+                                width: '100%',
+                                height: 'auto',
+                                maxHeight: '520px',
+                                objectFit: 'contain',
+                                borderRadius: 'calc(var(--x-radius) - 4px)',
+                              }}
                             />
                           </div>
-                        </div>
+                        </Stack>
                       ) : (
-                        <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-gray-400 text-xs gap-2 p-4 text-center">
-                          <span>🔥 Heatmap requires baseline and current screenshots</span>
+                        <div
+                          style={{
+                            height: '240px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 'var(--x-radius)',
+                            border: '1px dashed var(--x-border)',
+                            color: 'var(--x-text-muted)',
+                          }}
+                        >
+                          <Icon size="md">
+                            <Flame weight="thin" />
+                          </Icon>
+                          <Text styleKey="footnote" tone="muted" weight={300}>
+                            Heatmap requires baseline and current screenshots
+                          </Text>
                         </div>
                       )}
                     </div>
                   )}
-                </div>
+                </Stack>
               )}
-            </>
+            </Stack>
           ) : null}
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 border-t border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 text-xs font-semibold rounded-xl transition-colors"
-          >
+        <Divider />
+        <div
+          style={{
+            padding: 'var(--x-space-3) var(--x-space-6)',
+            backgroundColor: 'var(--x-surface-2)',
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <Button variant="subtle" size="sm" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </div>
