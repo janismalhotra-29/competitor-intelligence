@@ -3,16 +3,15 @@
 import { useEffect, useState } from 'react';
 import type { Competitor, Snapshot, Change, PricingPlan } from '@/types';
 import {
-  Surface,
-  Heading,
+  Stack,
+  Group,
   Text,
   Badge,
   Button,
   IconButton,
   Icon,
-  Group,
-  Stack,
   Divider,
+  Alert,
 } from '@xenon-kit/web';
 import {
   Globe,
@@ -24,6 +23,8 @@ import {
   Sparkle,
   Tag,
   WarningCircle,
+  CaretDown,
+  Camera,
 } from '@phosphor-icons/react';
 
 interface Props {
@@ -72,16 +73,21 @@ export function CompetitorList({
   }, [competitors, loadSnapshots, snapshotsMap, loadChanges, changesMap, loadPricing, pricingMap]);
 
   const [expandedHistory, setExpandedHistory] = useState<Record<string, boolean>>({});
+  const [activeTabMap, setActiveTabMap] = useState<Record<string, 'snapshots' | 'changes' | 'pricing'>>({});
 
   const toggleHistory = (id: string) => {
     setExpandedHistory((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const setTab = (id: string, tab: 'snapshots' | 'changes' | 'pricing') => {
+    setActiveTabMap((prev) => ({ ...prev, [id]: tab }));
+  };
+
   if (loading) {
     return (
-      <div style={{ padding: '32px', textAlign: 'center' }}>
+      <div style={{ padding: 'var(--x-space-8) 0', textAlign: 'center' }}>
         <Text styleKey="body" tone="muted" weight={300}>
-          Loading competitors...
+          Loading tracked competitors...
         </Text>
       </div>
     );
@@ -89,23 +95,25 @@ export function CompetitorList({
 
   if (competitors.length === 0) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
+      <div style={{ padding: 'var(--x-space-10) 0', textAlign: 'center' }}>
         <Icon size="lg" color="var(--x-text-muted)">
           <Globe weight="thin" />
         </Icon>
-        <Text styleKey="body" tone="muted" weight={300} style={{ marginTop: '8px' }}>
-          No competitors tracked yet.
-        </Text>
+        <div style={{ marginTop: 'var(--x-space-2)' }}>
+          <Text styleKey="body" tone="muted" weight={300}>
+            No competitors tracked yet
+          </Text>
+        </div>
         <Text styleKey="caption1" tone="muted" weight={200}>
-          Add a URL above to start monitoring.
+          Add a domain URL above to begin autonomous monitoring.
         </Text>
       </div>
     );
   }
 
   return (
-    <Stack gap={16}>
-      {competitors.map((comp) => {
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {competitors.map((comp, index) => {
         const snapshots = snapshotsMap[comp.id] || [];
         const latestSnapshot = snapshots.length > 0 ? snapshots[0] : null;
         const changes = (changesMap && changesMap[comp.id]) || [];
@@ -113,217 +121,154 @@ export function CompetitorList({
         const pricingPlans = (pricingMap && pricingMap[comp.id]) || [];
         const isCollecting = collectingMap[comp.id];
         const showHistory = expandedHistory[comp.id];
+        const currentTab = activeTabMap[comp.id] || 'snapshots';
 
         return (
-          <Surface
-            key={comp.id}
-            variant="subtle"
-            padding={20}
-            style={{
-              border: '1px solid var(--x-border)',
-              transition: 'border-color var(--x-dur-base) var(--x-ease-standard)',
-            }}
-          >
-            <Stack gap={16}>
-              {/* Row 1: Header & Main Controls */}
-              <Group justify="space-between" align="center" wrap>
-                <Group gap={12} align="center">
-                  <div
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: 'var(--x-radius)',
-                      border: '1px solid var(--x-border)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: 'var(--x-surface)',
-                    }}
-                  >
-                    <Icon size="sm" color="var(--x-accent)">
-                      <Globe weight="thin" />
-                    </Icon>
-                  </div>
-                  <div>
-                    <a
-                      href={comp.url}
-                      target="_blank"
-                      rel="noreferrer"
+          <div key={comp.id}>
+            {index > 0 && <Divider />}
+
+            <div style={{ padding: 'var(--x-space-4) 0' }}>
+              <Stack gap={16}>
+                {/* Main Competitor Row */}
+                <Group justify="space-between" align="center" wrap gap={12}>
+                  {/* Left: Domain identity & metadata */}
+                  <Group gap={12} align="center">
+                    <div
                       style={{
-                        color: 'var(--x-text)',
-                        textDecoration: 'none',
-                        outline: 'none',
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: 'var(--x-radius)',
+                        border: '1px solid var(--x-border)',
+                        backgroundColor: 'var(--x-surface-2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--x-accent)',
                       }}
                     >
-                      <Text styleKey="headline" weight={400}>
-                        {comp.url}
-                      </Text>
-                    </a>
-                    <Group gap={8} align="center" style={{ marginTop: '4px' }}>
-                      <Badge tone="success" size="sm">
-                        Active
-                      </Badge>
-                      <Text styleKey="caption2" tone="muted" weight={200}>
-                        Added {new Date(comp.createdAt).toLocaleDateString()}
-                      </Text>
-                      {latestChange && latestChange.hasChanges && (
-                        <Badge tone="warning" size="sm">
-                          Changes Detected
+                      <Icon size="sm">
+                        <Globe weight="thin" />
+                      </Icon>
+                    </div>
+
+                    <div>
+                      <a
+                        href={comp.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          color: 'var(--x-text)',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <Text styleKey="headline" weight={400}>
+                          {comp.url}
+                        </Text>
+                      </a>
+
+                      <Group gap={8} align="center" style={{ marginTop: '2px' }}>
+                        <Badge tone="success" size="sm">
+                          Active
                         </Badge>
-                      )}
-                    </Group>
-                  </div>
-                </Group>
+                        <Text styleKey="caption1" tone="muted" weight={300}>
+                          Added {new Date(comp.createdAt).toLocaleDateString()}
+                        </Text>
+                        {latestChange && latestChange.hasChanges && (
+                          <Badge tone="warning" size="sm">
+                            <Icon size="xs">
+                              <Sparkle weight="thin" />
+                            </Icon>
+                            Changes Detected
+                          </Badge>
+                        )}
+                        {latestSnapshot && (
+                          <Text styleKey="caption1" tone="muted" weight={300}>
+                            • Last capture {new Date(latestSnapshot.capturedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Text>
+                        )}
+                      </Group>
+                    </div>
+                  </Group>
 
-                <Group gap={8} align="center">
-                  <Button
-                    variant="accent"
-                    size="sm"
-                    loading={isCollecting}
-                    onClick={() => onCollect(comp.id)}
-                  >
-                    <Icon size="sm">
-                      <ArrowsClockwise weight="thin" />
-                    </Icon>
-                    <span>{isCollecting ? 'Collecting...' : 'Collect'}</span>
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleHistory(comp.id)}
-                  >
-                    <Icon size="sm">
-                      <ClockCounterClockwise weight="thin" />
-                    </Icon>
-                    <span>{showHistory ? 'Hide History' : 'History'}</span>
-                  </Button>
-
-                  {onDownloadReport && (
+                  {/* Right: Actions */}
+                  <Group gap={8} align="center">
                     <Button
-                      variant="subtle"
+                      variant="accent"
                       size="sm"
-                      onClick={() => onDownloadReport(comp.id, comp.url)}
-                      title="Download Executive Intelligence Report (.md)"
+                      loading={isCollecting}
+                      onClick={() => onCollect(comp.id)}
                     >
                       <Icon size="sm">
-                        <FileText weight="thin" />
+                        <ArrowsClockwise weight="thin" />
                       </Icon>
-                      <span>Report</span>
+                      <span>Collect</span>
                     </Button>
-                  )}
 
-                  <IconButton
-                    ariaLabel="Delete competitor"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(comp.id)}
-                  >
-                    <Icon size="sm" color="var(--x-danger)">
-                      <Trash weight="thin" />
-                    </Icon>
-                  </IconButton>
-                </Group>
-              </Group>
-
-              {/* Latest Snapshot Metadata */}
-              {latestSnapshot && !showHistory && (
-                <>
-                  <Divider />
-                  <Group justify="space-between" align="center" wrap>
-                    <Group gap={8} align="center">
-                      <Text styleKey="subhead" weight={400}>
-                        Latest Snapshot:
-                      </Text>
-                      <Text styleKey="callout" tone="muted" weight={300}>
-                        {latestSnapshot.pageTitle || 'No title captured'}
-                      </Text>
-                    </Group>
-                    <Group gap={12} align="center">
-                      <Text styleKey="caption2" tone="muted" weight={200}>
-                        {new Date(latestSnapshot.capturedAt).toLocaleString()}
-                      </Text>
-                      <Badge
-                        tone={latestSnapshot.status === 'SUCCESS' ? 'success' : 'danger'}
-                        size="sm"
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleHistory(comp.id)}
+                    >
+                      <Icon size="sm">
+                        <ClockCounterClockwise weight="thin" />
+                      </Icon>
+                      <span>History</span>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          transform: showHistory ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform var(--x-dur-base) var(--x-ease-spring)',
+                        }}
                       >
-                        {latestSnapshot.status}
-                      </Badge>
-                    </Group>
-                  </Group>
-                </>
-              )}
-
-              {/* Identified Pricing Plans */}
-              {pricingPlans.length > 0 && !showHistory && (
-                <Surface
-                  variant="default"
-                  padding={12}
-                  style={{ border: '1px solid var(--x-border)' }}
-                >
-                  <Stack gap={8}>
-                    <Group justify="space-between" align="center">
-                      <Group gap={6} align="center">
-                        <Icon size="sm" color="var(--x-accent)">
-                          <Tag weight="thin" />
+                        <Icon size="xs">
+                          <CaretDown weight="thin" />
                         </Icon>
-                        <Text styleKey="subhead" weight={400}>
-                          Identified Pricing & Plans
-                        </Text>
-                      </Group>
-                      <Badge size="sm">{pricingPlans.length} tiers</Badge>
-                    </Group>
-                    <Group gap={8} wrap>
-                      {pricingPlans.map((plan) => (
-                        <div
-                          key={plan.id}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: 'var(--x-radius)',
-                            border: '1px solid var(--x-border)',
-                            background: 'var(--x-surface)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}
-                        >
-                          <Text styleKey="caption1" weight={300}>
-                            {plan.name}:
-                          </Text>
-                          <Text
-                            styleKey="caption1"
-                            weight={400}
-                            style={{ color: 'var(--x-accent)' }}
-                          >
-                            {plan.price}
-                          </Text>
-                          {plan.period && (
-                            <Text styleKey="caption2" tone="muted" weight={200}>
-                              /{plan.period}
-                            </Text>
-                          )}
-                        </div>
-                      ))}
-                    </Group>
-                  </Stack>
-                </Surface>
-              )}
+                      </span>
+                    </Button>
 
-              {/* Difference Summary & AI Analysis */}
-              {latestChange && latestChange.hasChanges && !showHistory && (
-                <Surface
-                  variant="default"
-                  padding={12}
-                  style={{ border: '1px solid var(--x-border)' }}
-                >
-                  <Stack gap={10}>
-                    <Group justify="space-between" align="center">
+                    {onDownloadReport && (
+                      <Button
+                        variant="subtle"
+                        size="sm"
+                        onClick={() => onDownloadReport(comp.id, comp.url)}
+                        title="Download Executive Intelligence Report"
+                      >
+                        <Icon size="sm">
+                          <FileText weight="thin" />
+                        </Icon>
+                        <span>Report</span>
+                      </Button>
+                    )}
+
+                    <IconButton
+                      ariaLabel="Delete competitor"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(comp.id)}
+                    >
+                      <Icon size="sm" color="var(--x-danger)">
+                        <Trash weight="thin" />
+                      </Icon>
+                    </IconButton>
+                  </Group>
+                </Group>
+
+                {/* Latest Headline & AI Highlights (when collapsed) */}
+                {!showHistory && latestChange && latestChange.hasChanges && (
+                  <div
+                    style={{
+                      borderLeft: '2px solid var(--x-warning)',
+                      paddingLeft: 'var(--x-space-3)',
+                      marginLeft: 'var(--x-space-2)',
+                    }}
+                  >
+                    <Group justify="space-between" align="center" gap={12}>
                       <Group gap={6} align="center">
                         <Icon size="sm" color="var(--x-warning)">
                           <WarningCircle weight="thin" />
                         </Icon>
-                        <Text styleKey="subhead" weight={400}>
-                          Difference Summary
+                        <Text styleKey="footnote" weight={300}>
+                          {latestChange.diffSummary || 'Website update detected'}
                         </Text>
                       </Group>
                       {onInspectDiff && (
@@ -339,124 +284,214 @@ export function CompetitorList({
                         </Button>
                       )}
                     </Group>
+                  </div>
+                )}
 
-                    <Text styleKey="callout" tone="muted" weight={300}>
-                      {latestChange.diffSummary}
-                    </Text>
-
-                    {latestChange.aiSummary && (
-                      <>
-                        <Divider />
-                        <Stack gap={6}>
-                          <Group gap={6} align="center">
-                            <Icon size="sm" color="var(--x-accent)">
-                              <Sparkle weight="thin" />
-                            </Icon>
-                            <Text styleKey="subhead" weight={400}>
-                              AI Analysis
-                            </Text>
-                            <Badge
-                              tone={
-                                latestChange.aiSummary.significance === 'HIGH'
-                                  ? 'danger'
-                                  : latestChange.aiSummary.significance === 'MEDIUM'
-                                  ? 'warning'
-                                  : 'neutral'
-                              }
-                              size="sm"
-                            >
-                              {latestChange.aiSummary.significance} IMPACT
-                            </Badge>
-                          </Group>
-                          <Text
-                            styleKey="caption1"
-                            tone="muted"
-                            weight={300}
-                            style={{ fontStyle: 'italic', lineHeight: 1.6 }}
+                {/* Expanded Disclosure Panel (Pure 1px hairlines, NO nested card) */}
+                {showHistory && (
+                  <div
+                    style={{
+                      marginTop: 'var(--x-space-2)',
+                      padding: 'var(--x-space-4)',
+                      borderRadius: 'var(--x-radius)',
+                      backgroundColor: 'var(--x-surface-2)',
+                      border: '1px solid var(--x-border)',
+                    }}
+                  >
+                    <Stack gap={16}>
+                      {/* Sub-tab selection */}
+                      <Group justify="space-between" align="center">
+                        <Group gap={4}>
+                          <Button
+                            size="sm"
+                            variant={currentTab === 'snapshots' ? 'accent' : 'subtle'}
+                            onClick={() => setTab(comp.id, 'snapshots')}
                           >
-                            {latestChange.aiSummary.analysis}
-                          </Text>
-                        </Stack>
-                      </>
-                    )}
-                  </Stack>
-                </Surface>
-              )}
+                            <Icon size="xs">
+                              <Camera weight="thin" />
+                            </Icon>
+                            <span>Snapshots ({snapshots.length})</span>
+                          </Button>
 
-              {/* History View */}
-              {showHistory && (
-                <Stack gap={12}>
-                  <Divider />
-                  <Heading level={4} styleKey="headline" weight={300}>
-                    Change History
-                  </Heading>
-                  {changes.length === 0 ? (
-                    <Text styleKey="callout" tone="muted" weight={300}>
-                      No history available for this competitor yet.
-                    </Text>
-                  ) : (
-                    <Stack gap={8}>
-                      {changes.map((change) => (
-                        <Surface
-                          key={change.id}
-                          variant="default"
-                          padding={12}
-                          style={{ border: '1px solid var(--x-border)' }}
-                        >
-                          <Stack gap={8}>
-                            <Group justify="space-between" align="center">
-                              <Text styleKey="caption2" tone="muted" weight={200}>
-                                {new Date(change.detectedAt).toLocaleString()}
-                              </Text>
-                              <Badge
-                                tone={change.hasChanges ? 'warning' : 'neutral'}
-                                size="sm"
+                          <Button
+                            size="sm"
+                            variant={currentTab === 'changes' ? 'accent' : 'subtle'}
+                            onClick={() => setTab(comp.id, 'changes')}
+                          >
+                            <Icon size="xs">
+                              <FileText weight="thin" />
+                            </Icon>
+                            <span>Revisions ({changes.length})</span>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant={currentTab === 'pricing' ? 'accent' : 'subtle'}
+                            onClick={() => setTab(comp.id, 'pricing')}
+                          >
+                            <Icon size="xs">
+                              <Tag weight="thin" />
+                            </Icon>
+                            <span>Pricing Plans ({pricingPlans.length})</span>
+                          </Button>
+                        </Group>
+                      </Group>
+
+                      {/* TAB 1: Snapshots */}
+                      {currentTab === 'snapshots' && (
+                        <Stack gap={8}>
+                          {snapshots.length === 0 ? (
+                            <Text styleKey="footnote" tone="muted" weight={300}>
+                              No snapshots captured yet for this domain.
+                            </Text>
+                          ) : (
+                            snapshots.map((snap, sIdx) => (
+                              <div
+                                key={snap.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: 'var(--x-space-2) 0',
+                                  borderTop: sIdx > 0 ? '1px solid var(--x-border)' : 'none',
+                                }}
                               >
-                                {change.hasChanges ? 'Changes' : 'No Changes'}
-                              </Badge>
-                            </Group>
-
-                            {change.hasChanges && change.diffSummary && (
-                              <Group justify="space-between" align="center">
-                                <Text styleKey="callout" tone="muted" weight={300}>
-                                  {change.diffSummary}
-                                </Text>
-                                {onInspectDiff && (
-                                  <Button
-                                    variant="subtle"
+                                <Group gap={8} align="center">
+                                  <Badge
+                                    tone={snap.status === 'SUCCESS' ? 'success' : 'danger'}
                                     size="sm"
-                                    onClick={() => onInspectDiff(comp.id, change.id)}
                                   >
-                                    <Icon size="sm">
-                                      <Eye weight="thin" />
-                                    </Icon>
-                                    <span>Inspect</span>
-                                  </Button>
-                                )}
-                              </Group>
-                            )}
+                                    {snap.status}
+                                  </Badge>
+                                  <Text styleKey="footnote" weight={300}>
+                                    {snap.pageTitle || 'Default Landing Page'}
+                                  </Text>
+                                </Group>
+                                <Text styleKey="caption1" tone="muted" weight={300}>
+                                  {new Date(snap.capturedAt).toLocaleString()}
+                                </Text>
+                              </div>
+                            ))
+                          )}
+                        </Stack>
+                      )}
 
-                            {change.aiSummary && (
-                              <Text
-                                styleKey="caption1"
-                                tone="muted"
-                                weight={300}
-                                style={{ fontStyle: 'italic' }}
+                      {/* TAB 2: Changes & Diffs */}
+                      {currentTab === 'changes' && (
+                        <Stack gap={12}>
+                          {changes.length === 0 ? (
+                            <Text styleKey="footnote" tone="muted" weight={300}>
+                              No revisions recorded yet.
+                            </Text>
+                          ) : (
+                            changes.map((chg, cIdx) => (
+                              <div
+                                key={chg.id}
+                                style={{
+                                  padding: 'var(--x-space-2) 0',
+                                  borderTop: cIdx > 0 ? '1px solid var(--x-border)' : 'none',
+                                }}
                               >
-                                {change.aiSummary.analysis}
-                              </Text>
-                            )}
-                          </Stack>
-                        </Surface>
-                      ))}
+                                <Stack gap={8}>
+                                  <Group justify="space-between" align="center">
+                                    <Group gap={8} align="center">
+                                      <Badge
+                                        tone={chg.hasChanges ? 'warning' : 'neutral'}
+                                        size="sm"
+                                      >
+                                        {chg.hasChanges ? 'Change Detected' : 'Unchanged'}
+                                      </Badge>
+                                      <Text styleKey="caption1" tone="muted" weight={300}>
+                                        {new Date(chg.detectedAt).toLocaleString()}
+                                      </Text>
+                                    </Group>
+
+                                    {onInspectDiff && (
+                                      <Button
+                                        variant="accent"
+                                        size="sm"
+                                        onClick={() => onInspectDiff(comp.id, chg.id)}
+                                      >
+                                        <Icon size="sm">
+                                          <Eye weight="thin" />
+                                        </Icon>
+                                        <span>Inspect Diff</span>
+                                      </Button>
+                                    )}
+                                  </Group>
+
+                                  {chg.diffSummary && (
+                                    <Text styleKey="footnote" weight={300}>
+                                      {chg.diffSummary}
+                                    </Text>
+                                  )}
+
+                                  {chg.aiSummary && (
+                                    <Alert tone="accent" variant="subtle" title="AI Market Analysis">
+                                      <Text styleKey="footnote" weight={300}>
+                                        {chg.aiSummary.analysis}
+                                      </Text>
+                                    </Alert>
+                                  )}
+                                </Stack>
+                              </div>
+                            ))
+                          )}
+                        </Stack>
+                      )}
+
+                      {/* TAB 3: Pricing Intelligence */}
+                      {currentTab === 'pricing' && (
+                        <Stack gap={8}>
+                          {pricingPlans.length === 0 ? (
+                            <Text styleKey="footnote" tone="muted" weight={300}>
+                              No pricing plans detected on this domain yet. Run a collection to extract pricing tables.
+                            </Text>
+                          ) : (
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                                gap: 'var(--x-space-3)',
+                              }}
+                            >
+                              {pricingPlans.map((plan) => (
+                                <div
+                                  key={plan.id}
+                                  style={{
+                                    padding: 'var(--x-space-3)',
+                                    borderRadius: 'var(--x-radius)',
+                                    backgroundColor: 'var(--x-surface)',
+                                    border: '1px solid var(--x-border)',
+                                  }}
+                                >
+                                  <Group justify="space-between" align="center">
+                                    <Text styleKey="footnote" weight={400}>
+                                      {plan.name}
+                                    </Text>
+                                    <Badge tone="accent" size="sm">
+                                      {plan.price}
+                                    </Badge>
+                                  </Group>
+                                  {plan.period && (
+                                    <Text styleKey="caption2" tone="muted" weight={200}>
+                                      Billed {plan.period}
+                                    </Text>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </Stack>
+                      )}
                     </Stack>
-                  )}
-                </Stack>
-              )}
-            </Stack>
-          </Surface>
+                  </div>
+                )}
+              </Stack>
+            </div>
+          </div>
         );
       })}
-    </Stack>
+    </div>
   );
 }

@@ -16,16 +16,24 @@ export function useCompetitors() {
 
   // === QUERIES (Read-only) ===
   const loadCompetitors = useCallback(async () => {
+    console.log('[useCompetitors] loadCompetitors triggered');
     try {
       const data = await fetchCompetitors();
+      console.log('[useCompetitors] fetchCompetitors success, count:', data?.length);
       setCompetitors(data);
     } catch (err: unknown) {
+      console.error('[useCompetitors] fetchCompetitors failed:', err);
       if (err instanceof Error) setError(err.message);
       else setError(String(err));
     } finally {
+      console.log('[useCompetitors] setLoading(false)');
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    loadCompetitors();
+  }, [loadCompetitors]);
 
   const loadSnapshots = useCallback(async (id: string) => {
     try {

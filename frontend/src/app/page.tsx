@@ -1,8 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
-import { Surface, Stack, Group, Heading, Text, Badge, Alert, Icon } from '@xenon-kit/web';
-import { Lightning } from '@phosphor-icons/react';
+import {
+  GlassBar,
+  Surface,
+  Stack,
+  Group,
+  Heading,
+  Text,
+  Badge,
+  Icon,
+  Divider,
+} from '@xenon-kit/web';
+import { Lightning, Broadcast } from '@phosphor-icons/react';
 import { AddCompetitorForm } from '@/components/competitors/AddCompetitorForm';
 import { CompetitorList } from '@/components/competitors/CompetitorList';
 import { AlertsDropdown } from '@/components/alerts/AlertsDropdown';
@@ -12,14 +21,7 @@ import { useAlerts } from '@/hooks/useAlerts';
 
 export default function Home() {
   const { queries, mutations } = useCompetitors();
-  const { loadCompetitors } = queries;
   const { queries: alertQueries, mutations: alertMutations } = useAlerts();
-  const { loadAlerts } = alertQueries;
-
-  useEffect(() => {
-    loadCompetitors();
-    loadAlerts();
-  }, [loadCompetitors, loadAlerts]);
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to remove this competitor?')) return;
@@ -27,38 +29,46 @@ export default function Home() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--x-bg)', color: 'var(--x-text)', padding: 'var(--x-space-8)' }}>
-      <main style={{ maxWidth: '960px', margin: '0 auto' }}>
-        <Stack gap={32}>
-          {/* Header */}
-          <Group justify="between" align="center">
-            <Group gap={16} align="center">
-              <div
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: 'var(--x-radius)',
-                  border: '1px solid var(--x-border)',
-                  backgroundColor: 'var(--x-surface)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--x-accent)',
-                }}
-              >
-                <Icon size="lg">
-                  <Lightning weight="thin" />
-                </Icon>
-              </div>
-              <div>
-                <Heading level={1} styleKey="title2" weight={300}>
-                  Competitor Intelligence
-                </Heading>
-                <Text styleKey="callout" tone="muted" weight={300}>
-                  Track and monitor market changes, pricing, and visual updates
-                </Text>
-              </div>
-            </Group>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--x-bg)', color: 'var(--x-text)' }}>
+      {/* Top Floating GlassBar */}
+      <GlassBar
+        sticky
+        bordered
+        maxWidth="1080px"
+        brand={
+          <Group gap={12} align="center">
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: 'var(--x-radius)',
+                border: '1px solid var(--x-border)',
+                backgroundColor: 'var(--x-surface-2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--x-accent)',
+              }}
+            >
+              <Icon size="sm">
+                <Lightning weight="thin" />
+              </Icon>
+            </div>
+            <div>
+              <Text styleKey="headline" weight={300}>
+                Competitor Intelligence
+              </Text>
+            </div>
+          </Group>
+        }
+        actions={
+          <Group gap={12} align="center">
+            <Badge variant="subtle" tone="accent" size="sm">
+              <Icon size="xs">
+                <Broadcast weight="thin" />
+              </Icon>
+              <span>Live</span>
+            </Badge>
 
             <AlertsDropdown
               alerts={alertQueries.alerts}
@@ -67,35 +77,48 @@ export default function Home() {
               markAllAsRead={alertMutations.markAllAsReadMutation}
             />
           </Group>
+        }
+      />
 
-          {/* Add Competitor Surface */}
-          <Surface variant="default" padding={24}>
-            <Stack gap={16}>
-              <Heading level={2} styleKey="title3" weight={300}>
-                Add New Competitor
-              </Heading>
-              <AddCompetitorForm submitCompetitor={mutations.addCompetitorMutation} adding={mutations.adding} />
-              {queries.error && (
-                <Alert tone="danger" variant="subtle" title="Action Failed">
-                  <Text styleKey="footnote" weight={300}>
-                    {queries.error}
-                  </Text>
-                </Alert>
-              )}
-            </Stack>
+      {/* Main Content Area */}
+      <main style={{ maxWidth: '1080px', margin: '0 auto', padding: 'var(--x-space-8) var(--x-space-6)' }}>
+        <Stack gap={40}>
+          {/* Header Title Section */}
+          <Stack gap={8}>
+            <Heading level={1} styleKey="title1" weight={300}>
+              Market Monitoring
+            </Heading>
+            <Text styleKey="body" tone="muted" weight={300} style={{ maxWidth: '640px' }}>
+              Autonomous website tracking, visual pixel diff detection, and pricing intelligence powered by Xenon design system.
+            </Text>
+          </Stack>
+
+          {/* Form Surface */}
+          <Surface variant="default" padding={24} style={{ border: '1px solid var(--x-border)' }}>
+            <AddCompetitorForm
+              submitCompetitor={mutations.addCompetitorMutation}
+              adding={mutations.adding}
+            />
           </Surface>
 
-          {/* Tracked Competitors Surface */}
-          <Surface variant="default" padding={24}>
+          {/* Tracked Competitors List Surface */}
+          <Surface variant="default" padding={24} style={{ border: '1px solid var(--x-border)' }}>
             <Stack gap={20}>
-              <Group justify="between" align="center">
-                <Heading level={2} styleKey="title3" weight={300}>
-                  Tracked URLs
-                </Heading>
+              <Group justify="space-between" align="center">
+                <div>
+                  <Heading level={2} styleKey="title3" weight={300}>
+                    Tracked Domains
+                  </Heading>
+                  <Text styleKey="caption1" tone="muted" weight={300}>
+                    Real-time monitoring feeds and change histories
+                  </Text>
+                </div>
                 <Badge variant="subtle" tone="neutral">
-                  {queries.competitors.length} Total
+                  {queries.competitors.length} Active
                 </Badge>
               </Group>
+
+              <Divider />
 
               <CompetitorList
                 competitors={queries.competitors}
@@ -115,6 +138,7 @@ export default function Home() {
             </Stack>
           </Surface>
 
+          {/* Snapshot Diff Modal */}
           <SnapshotDiffModal
             diffData={queries.selectedDiff}
             loading={queries.diffLoading}

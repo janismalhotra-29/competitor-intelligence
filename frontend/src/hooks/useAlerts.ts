@@ -20,6 +20,10 @@ export function useAlerts() {
     }
   }, []);
 
+  useEffect(() => {
+    loadAlerts();
+  }, [loadAlerts]);
+
   // === MUTATIONS (Write-only) ===
   const markAsReadMutation = async (id: string) => {
     try {
