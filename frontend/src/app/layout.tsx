@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import "@xenon-kit/web/styles.css";
-import { XenonProvider } from "@xenon-kit/web";
 import "./globals.css";
+import { ClientProviders } from "@/components/providers/ClientProviders";
 
 export const metadata: Metadata = {
-  title: "AI Competitor Intelligence",
-  description: "Autonomous website monitoring and AI-powered competitor intelligence",
+  title: "AI Competitor Intelligence | Xenon Edition",
+  description: "Autonomous website monitoring and AI-powered competitor intelligence built with Xenon design system",
 };
 
 export default function RootLayout({
@@ -22,9 +22,9 @@ export default function RootLayout({
       className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col bg-[var(--x-bg)] text-[var(--x-text)]">
-        <XenonProvider defaultTheme="dark" defaultAccent="lime" defaultRadius={5}>
+        <ClientProviders>
           {children}
-        </XenonProvider>
+        </ClientProviders>
       </body>
     </html>
   );

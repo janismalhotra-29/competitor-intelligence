@@ -31,9 +31,27 @@ export function useCompetitors() {
     }
   }, []);
 
+  // Initial load
   useEffect(() => {
-    loadCompetitors();
-  }, [loadCompetitors]);
+    let isMounted = true;
+    fetchCompetitors()
+      .then((data) => {
+        if (isMounted) {
+          setCompetitors(data);
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (isMounted) {
+          if (err instanceof Error) setError(err.message);
+          else setError(String(err));
+          setLoading(false);
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const loadSnapshots = useCallback(async (id: string) => {
     try {

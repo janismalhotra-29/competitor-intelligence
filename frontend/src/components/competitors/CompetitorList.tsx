@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Competitor, Snapshot, Change, PricingPlan } from '@/types';
 import {
   Stack,
@@ -11,21 +11,44 @@ import {
   IconButton,
   Icon,
   Divider,
-  Alert,
+  Input,
+  SegmentedControl,
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+  Avatar,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+  Spinner,
+  toast,
 } from '@xenon-kit/web';
 import {
   Globe,
-  ArrowsClockwise,
+  ArrowClockwise,
   ClockCounterClockwise,
   FileText,
   Trash,
-  Eye,
-  Sparkle,
-  Tag,
-  WarningCircle,
+  ArrowsLeftRight,
   CaretDown,
+  MagnifyingGlass,
   Camera,
 } from '@phosphor-icons/react';
+
+function extractDomain(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url.replace(/https?:\/\//, '').split('/')[0] || url;
+  }
+}
 
 interface Props {
   competitors: Competitor[];
@@ -58,134 +81,191 @@ export function CompetitorList({
   loadPricing,
   onDownloadReport,
 }: Props) {
-  useEffect(() => {
-    competitors.forEach((comp) => {
-      if (!snapshotsMap[comp.id]) {
-        loadSnapshots(comp.id);
-      }
-      if (loadChanges && (!changesMap || !changesMap[comp.id])) {
-        loadChanges(comp.id);
-      }
-      if (loadPricing && (!pricingMap || !pricingMap[comp.id])) {
-        loadPricing(comp.id);
-      }
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeSubTab, setActiveSubTab] = useState<'snapshots' | 'revisions' | 'pricing'>('snapshots');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterMode, setFilterMode] = useState('all');
+  const [deleteTarget, setDeleteTarget] = useState<Competitor | null>(null);
+
+  // Filter competitors based on search and segment
+  const filteredCompetitors = competitors.filter((c) => {
+    const domain = extractDomain(c.url);
+    const query = searchQuery.toLowerCase();
+
+    const matchesSearch =
+      domain.toLowerCase().includes(query) ||
+      c.url.toLowerCase().includes(query);
+
+    if (!matchesSearch) return false;
+    if (filterMode === 'changes') {
+      const changes = changesMap?.[c.id] || [];
+      return changes.length > 0;
+    }
+    return true;
+  });
+
+  const toggleExpand = (id: string) => {
+    if (expandedId === id) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(id);
+      loadSnapshots(id);
+      if (loadChanges) loadChanges(id);
+      if (loadPricing) loadPricing(id);
+    }
+  };
+
+  const handleTriggerCollect = (id: string, domain: string) => {
+    toast.info('Crawl Initiated', {
+      description: `Capturing viewport screenshot and analyzing DOM for ${domain}...`,
     });
-  }, [competitors, loadSnapshots, snapshotsMap, loadChanges, changesMap, loadPricing, pricingMap]);
-
-  const [expandedHistory, setExpandedHistory] = useState<Record<string, boolean>>({});
-  const [activeTabMap, setActiveTabMap] = useState<Record<string, 'snapshots' | 'changes' | 'pricing'>>({});
-
-  const toggleHistory = (id: string) => {
-    setExpandedHistory((prev) => ({ ...prev, [id]: !prev[id] }));
+    onCollect(id);
   };
 
-  const setTab = (id: string, tab: 'snapshots' | 'changes' | 'pricing') => {
-    setActiveTabMap((prev) => ({ ...prev, [id]: tab }));
+  const handleDownloadReport = (id: string, url: string, domain: string) => {
+    if (onDownloadReport) {
+      onDownloadReport(id, url);
+      toast.success('Report Exported', {
+        description: `Intelligence Markdown report generated for ${domain}.`,
+      });
+    }
   };
 
-  if (loading) {
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    const name = extractDomain(deleteTarget.url);
+    onDelete(deleteTarget.id);
+    setDeleteTarget(null);
+    toast.warning('Competitor Removed', {
+      description: `${name} has been removed from autonomous observation.`,
+    });
+  };
+
+  if (loading && competitors.length === 0) {
     return (
-      <div style={{ padding: 'var(--x-space-8) 0', textAlign: 'center' }}>
-        <Text styleKey="body" tone="muted" weight={300}>
-          Loading tracked competitors...
-        </Text>
+      <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+        <Group justify="center" gap={12} align="center">
+          <Spinner size="sm" />
+          <Text styleKey="callout" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+            Loading tracked competitors from database...
+          </Text>
+        </Group>
       </div>
     );
   }
 
   if (competitors.length === 0) {
     return (
-      <div style={{ padding: 'var(--x-space-10) 0', textAlign: 'center' }}>
-        <Icon size="lg" color="var(--x-text-muted)">
-          <Globe weight="thin" />
-        </Icon>
-        <div style={{ marginTop: 'var(--x-space-2)' }}>
-          <Text styleKey="body" tone="muted" weight={300}>
+      <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+        <Stack gap={16} align="center">
+          <Icon size="lg" style={{ color: 'var(--x-text-muted)' }}>
+            <Globe weight="thin" />
+          </Icon>
+          <Text styleKey="headline" weight={300}>
             No competitors tracked yet
           </Text>
-        </div>
-        <Text styleKey="caption1" tone="muted" weight={200}>
-          Add a domain URL above to begin autonomous monitoring.
-        </Text>
+          <Text styleKey="callout" weight={300} style={{ color: 'var(--x-text-muted)', maxWidth: '440px' }}>
+            Enter a domain URL above to begin autonomous monitoring, visual pixel diff tracking, and pricing intelligence.
+          </Text>
+        </Stack>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {competitors.map((comp, index) => {
-        const snapshots = snapshotsMap[comp.id] || [];
-        const latestSnapshot = snapshots.length > 0 ? snapshots[0] : null;
-        const changes = (changesMap && changesMap[comp.id]) || [];
-        const latestChange = changes.length > 0 ? changes[0] : null;
-        const pricingPlans = (pricingMap && pricingMap[comp.id]) || [];
-        const isCollecting = collectingMap[comp.id];
-        const showHistory = expandedHistory[comp.id];
-        const currentTab = activeTabMap[comp.id] || 'snapshots';
+    <>
+      {/* Sub-header with Search and Filter */}
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--x-border)' }}>
+        <Group justify="space-between" align="center" wrap="wrap" gap={12}>
+          <div style={{ width: '280px' }}>
+            <Input
+              size="sm"
+              placeholder="Filter by domain..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              prefix={
+                <Icon size="sm" style={{ color: 'var(--x-text-muted)' }}>
+                  <MagnifyingGlass weight="thin" />
+                </Icon>
+              }
+            />
+          </div>
 
-        return (
-          <div key={comp.id}>
-            {index > 0 && <Divider />}
+          <Group gap={12} align="center">
+            <SegmentedControl
+              size="sm"
+              value={filterMode}
+              onValueChange={setFilterMode}
+              options={[
+                { value: 'all', label: `All (${competitors.length})` },
+                { value: 'changes', label: 'With Changes' },
+              ]}
+            />
+          </Group>
+        </Group>
+      </div>
 
-            <div style={{ padding: 'var(--x-space-4) 0' }}>
-              <Stack gap={16}>
-                {/* Main Competitor Row */}
-                <Group justify="space-between" align="center" wrap gap={12}>
-                  {/* Left: Domain identity & metadata */}
-                  <Group gap={12} align="center">
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: 'var(--x-radius)',
-                        border: '1px solid var(--x-border)',
-                        backgroundColor: 'var(--x-surface-2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--x-accent)',
-                      }}
-                    >
-                      <Icon size="sm">
-                        <Globe weight="thin" />
-                      </Icon>
-                    </div>
+      {/* Competitors List */}
+      <Stack gap={0}>
+        {filteredCompetitors.map((comp, index) => {
+          const isExpanded = expandedId === comp.id;
+          const isCollecting = !!collectingMap[comp.id];
+          const snapshots = snapshotsMap[comp.id] || [];
+          const changes = changesMap?.[comp.id] || [];
+          const pricingPlans = pricingMap?.[comp.id] || [];
+          const domain = extractDomain(comp.url);
+          const domainInitials = domain
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .slice(0, 2)
+            .toUpperCase() || 'CO';
+
+          return (
+            <div key={comp.id} data-testid="competitor-row">
+              {index > 0 && <Divider />}
+
+              {/* Main Competitor Row */}
+              <div
+                style={{
+                  padding: '20px 24px',
+                  transition: 'background-color 0.2s ease',
+                  backgroundColor: isExpanded ? 'var(--x-surface-1)' : 'transparent',
+                }}
+              >
+                <Group justify="space-between" align="center" wrap="wrap" gap={16}>
+                  {/* Left: Avatar + Identity */}
+                  <Group gap={16} align="center">
+                    <Avatar fallback={domainInitials} size="md" />
 
                     <div>
-                      <a
-                        href={comp.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          color: 'var(--x-text)',
-                          textDecoration: 'none',
-                        }}
-                      >
-                        <Text styleKey="headline" weight={400}>
-                          {comp.url}
+                      <Group gap={8} align="center">
+                        <Text styleKey="callout" weight={400} style={{ color: 'var(--x-text)' }}>
+                          {domain}
                         </Text>
-                      </a>
-
-                      <Group gap={8} align="center" style={{ marginTop: '2px' }}>
-                        <Badge tone="success" size="sm">
+                        <Badge variant="subtle" tone="accent" size="sm">
                           Active
                         </Badge>
-                        <Text styleKey="caption1" tone="muted" weight={300}>
-                          Added {new Date(comp.createdAt).toLocaleDateString()}
-                        </Text>
-                        {latestChange && latestChange.hasChanges && (
-                          <Badge tone="warning" size="sm">
-                            <Icon size="xs">
-                              <Sparkle weight="thin" />
-                            </Icon>
-                            Changes Detected
+                        {changes.length > 0 && (
+                          <Badge variant="outline" tone="neutral" size="sm">
+                            {changes.length} Changes
                           </Badge>
                         )}
-                        {latestSnapshot && (
-                          <Text styleKey="caption1" tone="muted" weight={300}>
-                            • Last capture {new Date(latestSnapshot.capturedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </Text>
-                        )}
+                      </Group>
+                      <Group gap={8} align="center" style={{ marginTop: '4px' }}>
+                        <a
+                          href={comp.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            textDecoration: 'none',
+                            color: 'var(--x-text-muted)',
+                            fontSize: '13px',
+                          }}
+                        >
+                          {comp.url}
+                        </a>
+                        <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                          · 15s interval
+                        </Text>
                       </Group>
                     </div>
                   </Group>
@@ -193,305 +273,308 @@ export function CompetitorList({
                   {/* Right: Actions */}
                   <Group gap={8} align="center">
                     <Button
-                      variant="accent"
+                      variant="ghost"
                       size="sm"
-                      loading={isCollecting}
-                      onClick={() => onCollect(comp.id)}
+                      disabled={isCollecting}
+                      onClick={() => handleTriggerCollect(comp.id, domain)}
                     >
-                      <Icon size="sm">
-                        <ArrowsClockwise weight="thin" />
-                      </Icon>
-                      <span>Collect</span>
+                      {isCollecting ? (
+                        <Spinner size="sm" />
+                      ) : (
+                        <Icon size="sm">
+                          <ArrowClockwise weight="thin" />
+                        </Icon>
+                      )}
+                      {isCollecting ? 'Crawling...' : 'Collect'}
                     </Button>
 
+                    {onDownloadReport && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownloadReport(comp.id, comp.url, domain)}
+                      >
+                        <Icon size="sm">
+                          <FileText weight="thin" />
+                        </Icon>
+                        Report
+                      </Button>
+                    )}
+
+                    {/* Norman Invariant Rotating Disclosure Trigger */}
                     <Button
-                      variant="outline"
+                      variant={isExpanded ? 'accent' : 'subtle'}
                       size="sm"
-                      onClick={() => toggleHistory(comp.id)}
+                      onClick={() => toggleExpand(comp.id)}
                     >
                       <Icon size="sm">
                         <ClockCounterClockwise weight="thin" />
                       </Icon>
-                      <span>History</span>
+                      History
                       <span
                         style={{
                           display: 'inline-flex',
-                          transform: showHistory ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform var(--x-dur-base) var(--x-ease-spring)',
+                          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                         }}
                       >
-                        <Icon size="xs">
+                        <Icon size="sm">
                           <CaretDown weight="thin" />
                         </Icon>
                       </span>
                     </Button>
 
-                    {onDownloadReport && (
-                      <Button
-                        variant="subtle"
-                        size="sm"
-                        onClick={() => onDownloadReport(comp.id, comp.url)}
-                        title="Download Executive Intelligence Report"
-                      >
-                        <Icon size="sm">
-                          <FileText weight="thin" />
-                        </Icon>
-                        <span>Report</span>
-                      </Button>
-                    )}
-
                     <IconButton
-                      ariaLabel="Delete competitor"
                       variant="ghost"
                       size="sm"
-                      onClick={() => onDelete(comp.id)}
+                      aria-label="Delete Competitor"
+                      onClick={() => setDeleteTarget(comp)}
                     >
-                      <Icon size="sm" color="var(--x-danger)">
+                      <Icon size="sm" style={{ color: 'var(--x-text-muted)' }}>
                         <Trash weight="thin" />
                       </Icon>
                     </IconButton>
                   </Group>
                 </Group>
+              </div>
 
-                {/* Latest Headline & AI Highlights (when collapsed) */}
-                {!showHistory && latestChange && latestChange.hasChanges && (
-                  <div
-                    style={{
-                      borderLeft: '2px solid var(--x-warning)',
-                      paddingLeft: 'var(--x-space-3)',
-                      marginLeft: 'var(--x-space-2)',
-                    }}
-                  >
-                    <Group justify="space-between" align="center" gap={12}>
-                      <Group gap={6} align="center">
-                        <Icon size="sm" color="var(--x-warning)">
-                          <WarningCircle weight="thin" />
-                        </Icon>
-                        <Text styleKey="footnote" weight={300}>
-                          {latestChange.diffSummary || 'Website update detected'}
-                        </Text>
-                      </Group>
-                      {onInspectDiff && (
-                        <Button
-                          variant="subtle"
-                          size="sm"
-                          onClick={() => onInspectDiff(comp.id, latestChange.id)}
-                        >
-                          <Icon size="sm">
-                            <Eye weight="thin" />
-                          </Icon>
-                          <span>Inspect Diff</span>
-                        </Button>
-                      )}
+              {/* Norman Invariant Expanded Disclosure Panel */}
+              {isExpanded && (
+                <div
+                  style={{
+                    padding: '20px 24px 28px 24px',
+                    borderTop: '1px solid var(--x-border)',
+                    backgroundColor: 'var(--x-surface-1)',
+                  }}
+                >
+                  <Stack gap={16}>
+                    {/* Segmented Control for Sub-tabs */}
+                    <Group justify="space-between" align="center">
+                      <SegmentedControl
+                        size="sm"
+                        value={activeSubTab}
+                        onValueChange={(val: string) => setActiveSubTab(val as 'snapshots' | 'revisions' | 'pricing')}
+                        options={[
+                          { value: 'snapshots', label: `Snapshots (${snapshots.length})` },
+                          { value: 'revisions', label: `Revisions (${changes.length})` },
+                          { value: 'pricing', label: `Pricing Plans (${pricingPlans.length})` },
+                        ]}
+                      />
+                      <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                        ID: {comp.id}
+                      </Text>
                     </Group>
-                  </div>
-                )}
 
-                {/* Expanded Disclosure Panel (Pure 1px hairlines, NO nested card) */}
-                {showHistory && (
-                  <div
-                    style={{
-                      marginTop: 'var(--x-space-2)',
-                      padding: 'var(--x-space-4)',
-                      borderRadius: 'var(--x-radius)',
-                      backgroundColor: 'var(--x-surface-2)',
-                      border: '1px solid var(--x-border)',
-                    }}
-                  >
-                    <Stack gap={16}>
-                      {/* Sub-tab selection */}
-                      <Group justify="space-between" align="center">
-                        <Group gap={4}>
-                          <Button
-                            size="sm"
-                            variant={currentTab === 'snapshots' ? 'accent' : 'subtle'}
-                            onClick={() => setTab(comp.id, 'snapshots')}
-                          >
-                            <Icon size="xs">
-                              <Camera weight="thin" />
-                            </Icon>
-                            <span>Snapshots ({snapshots.length})</span>
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant={currentTab === 'changes' ? 'accent' : 'subtle'}
-                            onClick={() => setTab(comp.id, 'changes')}
-                          >
-                            <Icon size="xs">
-                              <FileText weight="thin" />
-                            </Icon>
-                            <span>Revisions ({changes.length})</span>
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant={currentTab === 'pricing' ? 'accent' : 'subtle'}
-                            onClick={() => setTab(comp.id, 'pricing')}
-                          >
-                            <Icon size="xs">
-                              <Tag weight="thin" />
-                            </Icon>
-                            <span>Pricing Plans ({pricingPlans.length})</span>
-                          </Button>
-                        </Group>
-                      </Group>
-
-                      {/* TAB 1: Snapshots */}
-                      {currentTab === 'snapshots' && (
-                        <Stack gap={8}>
-                          {snapshots.length === 0 ? (
-                            <Text styleKey="footnote" tone="muted" weight={300}>
-                              No snapshots captured yet for this domain.
+                    {/* Sub-tab 1: Snapshots Table */}
+                    {activeSubTab === 'snapshots' && (
+                      <div>
+                        {snapshots.length === 0 ? (
+                          <div style={{ padding: '24px', textAlign: 'center' }}>
+                            <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                              No snapshots captured yet. Click &quot;Collect&quot; to capture the initial viewport.
                             </Text>
-                          ) : (
-                            snapshots.map((snap, sIdx) => (
-                              <div
-                                key={snap.id}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: 'var(--x-space-2) 0',
-                                  borderTop: sIdx > 0 ? '1px solid var(--x-border)' : 'none',
-                                }}
-                              >
-                                <Group gap={8} align="center">
-                                  <Badge
-                                    tone={snap.status === 'SUCCESS' ? 'success' : 'danger'}
-                                    size="sm"
-                                  >
-                                    {snap.status}
-                                  </Badge>
-                                  <Text styleKey="footnote" weight={300}>
-                                    {snap.pageTitle || 'Default Landing Page'}
-                                  </Text>
-                                </Group>
-                                <Text styleKey="caption1" tone="muted" weight={300}>
-                                  {new Date(snap.capturedAt).toLocaleString()}
-                                </Text>
-                              </div>
-                            ))
-                          )}
-                        </Stack>
-                      )}
-
-                      {/* TAB 2: Changes & Diffs */}
-                      {currentTab === 'changes' && (
-                        <Stack gap={12}>
-                          {changes.length === 0 ? (
-                            <Text styleKey="footnote" tone="muted" weight={300}>
-                              No revisions recorded yet.
-                            </Text>
-                          ) : (
-                            changes.map((chg, cIdx) => (
-                              <div
-                                key={chg.id}
-                                style={{
-                                  padding: 'var(--x-space-2) 0',
-                                  borderTop: cIdx > 0 ? '1px solid var(--x-border)' : 'none',
-                                }}
-                              >
-                                <Stack gap={8}>
-                                  <Group justify="space-between" align="center">
-                                    <Group gap={8} align="center">
-                                      <Badge
-                                        tone={chg.hasChanges ? 'warning' : 'neutral'}
-                                        size="sm"
-                                      >
-                                        {chg.hasChanges ? 'Change Detected' : 'Unchanged'}
-                                      </Badge>
-                                      <Text styleKey="caption1" tone="muted" weight={300}>
-                                        {new Date(chg.detectedAt).toLocaleString()}
+                          </div>
+                        ) : (
+                          <Table variant="default" size="sm">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead style={{ width: '40%' }}>TIMESTAMP</TableHead>
+                                <TableHead style={{ width: '25%' }}>STATUS</TableHead>
+                                <TableHead style={{ width: '35%', textAlign: 'right' }}>ACTION</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {snapshots.map((snap) => (
+                                <TableRow key={snap.id}>
+                                  <TableCell>
+                                    <Group gap={6} align="center">
+                                      <Icon size="sm" style={{ color: 'var(--x-text-muted)' }}>
+                                        <Camera weight="thin" />
+                                      </Icon>
+                                      <Text styleKey="caption1" weight={300}>
+                                        {new Date(snap.capturedAt).toLocaleString()}
                                       </Text>
                                     </Group>
-
-                                    {onInspectDiff && (
-                                      <Button
-                                        variant="accent"
-                                        size="sm"
-                                        onClick={() => onInspectDiff(comp.id, chg.id)}
-                                      >
-                                        <Icon size="sm">
-                                          <Eye weight="thin" />
-                                        </Icon>
-                                        <span>Inspect Diff</span>
-                                      </Button>
-                                    )}
-                                  </Group>
-
-                                  {chg.diffSummary && (
-                                    <Text styleKey="footnote" weight={300}>
-                                      {chg.diffSummary}
-                                    </Text>
-                                  )}
-
-                                  {chg.aiSummary && (
-                                    <Alert tone="accent" variant="subtle" title="AI Market Analysis">
-                                      <Text styleKey="footnote" weight={300}>
-                                        {chg.aiSummary.analysis}
-                                      </Text>
-                                    </Alert>
-                                  )}
-                                </Stack>
-                              </div>
-                            ))
-                          )}
-                        </Stack>
-                      )}
-
-                      {/* TAB 3: Pricing Intelligence */}
-                      {currentTab === 'pricing' && (
-                        <Stack gap={8}>
-                          {pricingPlans.length === 0 ? (
-                            <Text styleKey="footnote" tone="muted" weight={300}>
-                              No pricing plans detected on this domain yet. Run a collection to extract pricing tables.
-                            </Text>
-                          ) : (
-                            <div
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                                gap: 'var(--x-space-3)',
-                              }}
-                            >
-                              {pricingPlans.map((plan) => (
-                                <div
-                                  key={plan.id}
-                                  style={{
-                                    padding: 'var(--x-space-3)',
-                                    borderRadius: 'var(--x-radius)',
-                                    backgroundColor: 'var(--x-surface)',
-                                    border: '1px solid var(--x-border)',
-                                  }}
-                                >
-                                  <Group justify="space-between" align="center">
-                                    <Text styleKey="footnote" weight={400}>
-                                      {plan.name}
-                                    </Text>
-                                    <Badge tone="accent" size="sm">
-                                      {plan.price}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="subtle" tone="accent" size="sm">
+                                      {snap.status || 'CAPTURED'}
                                     </Badge>
-                                  </Group>
-                                  {plan.period && (
-                                    <Text styleKey="caption2" tone="muted" weight={200}>
-                                      Billed {plan.period}
+                                  </TableCell>
+                                  <TableCell style={{ textAlign: 'right' }}>
+                                    <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                                      Viewport Ready
                                     </Text>
-                                  )}
-                                </div>
+                                  </TableCell>
+                                </TableRow>
                               ))}
-                            </div>
-                          )}
-                        </Stack>
-                      )}
-                    </Stack>
-                  </div>
-                )}
-              </Stack>
+                            </TableBody>
+                          </Table>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sub-tab 2: Revisions Table */}
+                    {activeSubTab === 'revisions' && (
+                      <div>
+                        {changes.length === 0 ? (
+                          <div style={{ padding: '24px', textAlign: 'center' }}>
+                            <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                              No revisions recorded yet. Changes appear automatically when DOM or layout drifts.
+                            </Text>
+                          </div>
+                        ) : (
+                          <Table variant="default" size="sm">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead style={{ width: '25%' }}>STATUS</TableHead>
+                                <TableHead style={{ width: '20%' }}>SIGNIFICANCE</TableHead>
+                                <TableHead style={{ width: '40%' }}>SUMMARY</TableHead>
+                                <TableHead style={{ width: '15%', textAlign: 'right' }}>DIFF</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {changes.map((ch) => {
+                                const sig = ch.aiSummary?.significance?.toLowerCase() || 'medium';
+                                const isHigh = sig === 'high';
+                                const isMedium = sig === 'medium';
+                                const badgeTone = isHigh ? 'danger' : isMedium ? 'accent' : 'neutral';
+
+                                return (
+                                  <TableRow key={ch.id}>
+                                    <TableCell>
+                                      <Badge variant="subtle" tone={badgeTone} size="sm">
+                                        {ch.hasChanges ? 'DIFF DETECTED' : 'STABLE'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Text styleKey="caption1" weight={300}>
+                                        {ch.aiSummary?.significance || 'Analyzed'}
+                                      </Text>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                                        {ch.aiSummary?.analysis || ch.diffSummary || 'Visual diff detected'}
+                                      </Text>
+                                    </TableCell>
+                                    <TableCell style={{ textAlign: 'right' }}>
+                                      {onInspectDiff && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => onInspectDiff(comp.id, ch.id)}
+                                        >
+                                          <Icon size="sm">
+                                            <ArrowsLeftRight weight="thin" />
+                                          </Icon>
+                                          Inspect
+                                        </Button>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sub-tab 3: Pricing Plans Table */}
+                    {activeSubTab === 'pricing' && (
+                      <div>
+                        {pricingPlans.length === 0 ? (
+                          <div style={{ padding: '24px', textAlign: 'center' }}>
+                            <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                              No pricing tiers extracted yet for this competitor.
+                            </Text>
+                          </div>
+                        ) : (
+                          <Table variant="default" size="sm">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead style={{ width: '25%' }}>PLAN</TableHead>
+                                <TableHead style={{ width: '25%' }}>RATE</TableHead>
+                                <TableHead style={{ width: '50%' }}>FEATURES</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {pricingPlans.map((plan, pIdx) => {
+                                const features: string[] = Array.isArray(plan.features)
+                                  ? plan.features
+                                  : typeof plan.features === 'string'
+                                  ? JSON.parse(plan.features || '[]')
+                                  : [];
+
+                                return (
+                                  <TableRow key={plan.id || pIdx}>
+                                    <TableCell>
+                                      <Badge variant="subtle" tone="accent" size="sm">
+                                        {plan.name}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Text styleKey="caption1" weight={400}>
+                                        {plan.price ? `$${plan.price}` : 'Free'}
+                                        {plan.period ? ` / ${plan.period}` : ''}
+                                      </Text>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Group gap={6} wrap="wrap">
+                                        {features.map((f, fIdx) => (
+                                          <Badge key={fIdx} variant="outline" tone="neutral" size="sm">
+                                            {f}
+                                          </Badge>
+                                        ))}
+                                      </Group>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </div>
+                    )}
+                  </Stack>
+                </div>
+              )}
             </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </Stack>
+
+      {/* Xenon Confirmation Dialog for Deletion */}
+      {/* @ts-expect-error Xenon WebDialogProps typings omit children in declaration */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}>
+        <DialogContent style={{ maxWidth: '440px', padding: '24px' }}>
+          <DialogHeader>
+            <DialogTitle>Remove Competitor</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove{' '}
+              <span style={{ color: 'var(--x-text)', fontWeight: 400 }}>
+                {deleteTarget ? extractDomain(deleteTarget.url) : 'this competitor'}
+              </span>
+              ? Autonomous snapshot collection and historical visual diffs for this domain will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter style={{ marginTop: '20px' }}>
+            <Group gap={8} justify="flex-end">
+              <DialogClose asChild>
+                <Button variant="ghost" size="sm">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button variant="destructive" size="sm" onClick={confirmDelete}>
+                <Icon size="sm">
+                  <Trash weight="thin" />
+                </Icon>
+                Delete Competitor
+              </Button>
+            </Group>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

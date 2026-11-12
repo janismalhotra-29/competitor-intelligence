@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   GlassBar,
   Surface,
@@ -9,13 +10,28 @@ import {
   Text,
   Badge,
   Icon,
-  Divider,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
 } from '@xenon-kit/web';
-import { Lightning, Broadcast } from '@phosphor-icons/react';
+import {
+  Lightning,
+  Globe,
+  GitDiff,
+  CurrencyDollar,
+  Bell,
+  MagnifyingGlass,
+} from '@phosphor-icons/react';
 import { AddCompetitorForm } from '@/components/competitors/AddCompetitorForm';
 import { CompetitorList } from '@/components/competitors/CompetitorList';
 import { AlertsDropdown } from '@/components/alerts/AlertsDropdown';
 import { SnapshotDiffModal } from '@/components/changes/SnapshotDiffModal';
+import { MetricsRibbon } from '@/components/dashboard/MetricsRibbon';
+import { CommandPaletteModal } from '@/components/dashboard/CommandPaletteModal';
+import { VisualDiffGallery } from '@/components/diffs/VisualDiffGallery';
+import { PricingMatrix } from '@/components/pricing/PricingMatrix';
+import { AlertsTrail } from '@/components/alerts/AlertsTrail';
 import { useCompetitors } from '@/hooks/useCompetitors';
 import { useAlerts } from '@/hooks/useAlerts';
 
@@ -23,18 +39,41 @@ export default function Home() {
   const { queries, mutations } = useCompetitors();
   const { queries: alertQueries, mutations: alertMutations } = useAlerts();
 
-  async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to remove this competitor?')) return;
-    await mutations.deleteCompetitorMutation(id);
-  }
+  const [activeTab, setActiveTab] = useState('competitors');
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Global Keyboard Shortcut for Command Palette (⌘K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleFocusAdd = () => {
+    setActiveTab('competitors');
+    setTimeout(() => {
+      const input = document.getElementById('competitor-url-input');
+      if (input) input.focus();
+    }, 150);
+  };
+
+  // Compute aggregate statistics for the Metrics Ribbon
+  const totalSnapshots = Object.values(queries.snapshotsMap).reduce((acc, s) => acc + s.length, 0);
+  const totalChanges = Object.values(queries.changesMap).reduce((acc, c) => acc + c.length, 0);
+  const totalPricingPlans = Object.values(queries.pricingMap).reduce((acc, p) => acc + p.length, 0);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--x-bg)', color: 'var(--x-text)' }}>
-      {/* Top Floating GlassBar */}
+      {/* Top Floating GlassBar Navigation */}
       <GlassBar
         sticky
         bordered
-        maxWidth="1080px"
+        maxWidth="1140px"
         brand={
           <Group gap={12} align="center">
             <div
@@ -55,97 +94,244 @@ export default function Home() {
               </Icon>
             </div>
             <div>
-              <Text styleKey="headline" weight={300}>
-                Competitor Intelligence
-              </Text>
+              <Group gap={8} align="center">
+                <Text styleKey="headline" weight={300}>
+                  Competitor Intelligence
+                </Text>
+                <Badge variant="subtle" tone="accent" size="sm">
+                  v1.2 Xenon
+                </Badge>
+              </Group>
             </div>
           </Group>
         }
-        actions={
-          <Group gap={12} align="center">
-            <Badge variant="subtle" tone="accent" size="sm">
-              <Icon size="xs">
-                <Broadcast weight="thin" />
-              </Icon>
-              <span>Live</span>
-            </Badge>
+      >
+        <Group gap={16} align="center">
+          {/* Fast Search Pill Button for Command Palette */}
+          <button
+            type="button"
+            onClick={() => setCommandPaletteOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 12px',
+              backgroundColor: 'var(--x-surface-1)',
+              border: '1px solid var(--x-border)',
+              borderRadius: 'var(--x-radius)',
+              color: 'var(--x-text-muted)',
+              cursor: 'pointer',
+              fontSize: '13px',
+              transition: 'border-color 0.15s ease',
+            }}
+          >
+            <Icon size="sm">
+              <MagnifyingGlass weight="thin" />
+            </Icon>
+            <span>Search or command...</span>
+            <span
+              style={{
+                fontSize: '11px',
+                padding: '2px 6px',
+                borderRadius: 'var(--x-radius-sm)',
+                backgroundColor: 'var(--x-surface-2)',
+                border: '1px solid var(--x-border)',
+                color: 'var(--x-text-muted)',
+              }}
+            >
+              ⌘K
+            </span>
+          </button>
 
-            <AlertsDropdown
-              alerts={alertQueries.alerts}
-              unreadCount={alertQueries.unreadCount}
-              markAsRead={alertMutations.markAsReadMutation}
-              markAllAsRead={alertMutations.markAllAsReadMutation}
-            />
-          </Group>
-        }
-      />
+          {/* Realtime Live Status Pill */}
+          <Badge variant="subtle" tone="accent" size="sm">
+            <Group gap={6} align="center">
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--x-accent)',
+                  display: 'inline-block',
+                }}
+              />
+              <span>Live Engine</span>
+            </Group>
+          </Badge>
+
+          {/* Notification Alerts Popover */}
+          <AlertsDropdown
+            alerts={alertQueries.alerts}
+            unreadCount={alertQueries.unreadCount}
+            markAsRead={alertMutations.markAsReadMutation}
+            markAllAsRead={alertMutations.markAllAsReadMutation}
+          />
+        </Group>
+      </GlassBar>
 
       {/* Main Content Area */}
-      <main style={{ maxWidth: '1080px', margin: '0 auto', padding: 'var(--x-space-8) var(--x-space-6)' }}>
-        <Stack gap={40}>
-          {/* Header Title Section */}
+      <main style={{ maxWidth: '1140px', margin: '0 auto', padding: '40px 24px 80px 24px' }}>
+        <Stack gap={32}>
+          {/* Hero Header */}
           <Stack gap={8}>
-            <Heading level={1} styleKey="title1" weight={300}>
-              Market Monitoring
+            <Heading level={1} styleKey="title1" weight={300} style={{ letterSpacing: '-0.02em' }}>
+              Autonomous Market Intelligence
             </Heading>
-            <Text styleKey="body" tone="muted" weight={300} style={{ maxWidth: '640px' }}>
-              Autonomous website tracking, visual pixel diff detection, and pricing intelligence powered by Xenon design system.
+            <Text styleKey="callout" weight={300} style={{ color: 'var(--x-text-muted)', maxWidth: '680px' }}>
+              Continuous headless Chromium surveillance, zero-blur visual pixel diff detection, and pricing intelligence
+              curated entirely within the Xenon design system.
             </Text>
           </Stack>
 
-          {/* Form Surface */}
-          <Surface variant="default" padding={24} style={{ border: '1px solid var(--x-border)' }}>
-            <AddCompetitorForm
-              submitCompetitor={mutations.addCompetitorMutation}
-              adding={mutations.adding}
-            />
-          </Surface>
-
-          {/* Tracked Competitors List Surface */}
-          <Surface variant="default" padding={24} style={{ border: '1px solid var(--x-border)' }}>
-            <Stack gap={20}>
-              <Group justify="space-between" align="center">
-                <div>
-                  <Heading level={2} styleKey="title3" weight={300}>
-                    Tracked Domains
-                  </Heading>
-                  <Text styleKey="caption1" tone="muted" weight={300}>
-                    Real-time monitoring feeds and change histories
-                  </Text>
-                </div>
-                <Badge variant="subtle" tone="neutral">
-                  {queries.competitors.length} Active
-                </Badge>
-              </Group>
-
-              <Divider />
-
-              <CompetitorList
-                competitors={queries.competitors}
-                loading={queries.loading}
-                onDelete={handleDelete}
-                onCollect={mutations.triggerCollectionMutation}
-                collectingMap={mutations.collectingMap}
-                snapshotsMap={queries.snapshotsMap}
-                loadSnapshots={queries.loadSnapshots}
-                changesMap={queries.changesMap}
-                loadChanges={queries.loadChanges}
-                onInspectDiff={queries.loadChangeDiff}
-                pricingMap={queries.pricingMap}
-                loadPricing={queries.loadPricing}
-                onDownloadReport={queries.downloadReport}
-              />
-            </Stack>
-          </Surface>
-
-          {/* Snapshot Diff Modal */}
-          <SnapshotDiffModal
-            diffData={queries.selectedDiff}
-            loading={queries.diffLoading}
-            onClose={queries.closeDiffModal}
+          {/* Xenon Signature Metrics & Health Ribbon */}
+          <MetricsRibbon
+            competitorsCount={queries.competitors.length}
+            totalSnapshots={totalSnapshots}
+            totalChanges={totalChanges}
+            totalPricingPlans={totalPricingPlans}
+            isLive={true}
           />
+
+          {/* Xenon Core Navigation Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList ariaLabel="Dashboard Sections">
+              <TabsTrigger value="competitors" icon={<Globe weight="thin" />}>
+                Tracked Domains ({queries.competitors.length})
+              </TabsTrigger>
+              <TabsTrigger value="diffs" icon={<GitDiff weight="thin" />}>
+                Visual Diffs
+              </TabsTrigger>
+              <TabsTrigger value="pricing" icon={<CurrencyDollar weight="thin" />}>
+                Pricing Intelligence
+              </TabsTrigger>
+              <TabsTrigger value="alerts" icon={<Bell weight="thin" />}>
+                Alerts & Audit ({alertQueries.unreadCount})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* TAB 1: Competitors Management */}
+            <TabsContent value="competitors">
+              <Stack gap={24} style={{ marginTop: '20px' }}>
+                {/* Add Competitor Form */}
+                <Surface
+                  variant="default"
+                  padding={24}
+                  style={{
+                    borderRadius: 'var(--x-radius)',
+                    border: '1px solid var(--x-border)',
+                  }}
+                >
+                  <AddCompetitorForm
+                    submitCompetitor={mutations.addCompetitorMutation}
+                    adding={mutations.adding}
+                    error={queries.error}
+                  />
+                </Surface>
+
+                {/* Tracked Domains Surface */}
+                <Surface
+                  variant="default"
+                  padding={0}
+                  style={{
+                    borderRadius: 'var(--x-radius)',
+                    border: '1px solid var(--x-border)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--x-border)' }}>
+                    <Group justify="space-between" align="center">
+                      <div>
+                        <Text styleKey="headline" weight={300}>
+                          Monitored Competitors
+                        </Text>
+                        <Text
+                          styleKey="caption1"
+                          weight={300}
+                          style={{ color: 'var(--x-text-muted)', marginTop: '2px' }}
+                        >
+                          Real-time change detection, headless snapshots and Norman Invariant history
+                        </Text>
+                      </div>
+                      <Badge variant="subtle" tone="accent">
+                        {queries.competitors.length} Active
+                      </Badge>
+                    </Group>
+                  </div>
+
+                  <CompetitorList
+                    competitors={queries.competitors}
+                    loading={queries.loading}
+                    onDelete={mutations.deleteCompetitorMutation}
+                    onCollect={mutations.triggerCollectionMutation}
+                    collectingMap={mutations.collectingMap}
+                    snapshotsMap={queries.snapshotsMap}
+                    loadSnapshots={queries.loadSnapshots}
+                    changesMap={queries.changesMap}
+                    loadChanges={queries.loadChanges}
+                    pricingMap={queries.pricingMap}
+                    loadPricing={queries.loadPricing}
+                    onInspectDiff={queries.loadChangeDiff}
+                    onDownloadReport={queries.downloadReport}
+                  />
+                </Surface>
+              </Stack>
+            </TabsContent>
+
+            {/* TAB 2: Visual Diffs & Heatmaps Gallery */}
+            <TabsContent value="diffs">
+              <div style={{ marginTop: '20px' }}>
+                <VisualDiffGallery
+                  competitors={queries.competitors}
+                  changesMap={queries.changesMap}
+                  onInspectDiff={queries.loadChangeDiff}
+                  diffLoading={queries.diffLoading}
+                />
+              </div>
+            </TabsContent>
+
+            {/* TAB 3: Cross-Competitor Pricing Intelligence */}
+            <TabsContent value="pricing">
+              <div style={{ marginTop: '20px' }}>
+                <PricingMatrix
+                  competitors={queries.competitors}
+                  pricingMap={queries.pricingMap}
+                  onDownloadReport={queries.downloadReport}
+                />
+              </div>
+            </TabsContent>
+
+            {/* TAB 4: Alerts & Audit Log */}
+            <TabsContent value="alerts">
+              <div style={{ marginTop: '20px' }}>
+                <AlertsTrail
+                  alerts={alertQueries.alerts}
+                  onMarkRead={alertMutations.markAsReadMutation}
+                  onMarkAllRead={alertMutations.markAllAsReadMutation}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
         </Stack>
       </main>
+
+      {/* Floating Liquid Glass Command Palette (⌘K) */}
+      <CommandPaletteModal
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        competitors={queries.competitors}
+        onSelectTab={setActiveTab}
+        onFocusAdd={handleFocusAdd}
+        onTriggerCollect={mutations.triggerCollectionMutation}
+      />
+
+      {/* Floating Liquid Glass Visual Diff Modal */}
+      {queries.selectedDiff && (
+        <SnapshotDiffModal
+          diffData={queries.selectedDiff}
+          onClose={queries.closeDiffModal}
+          loading={queries.diffLoading}
+        />
+      )}
     </div>
   );
 }

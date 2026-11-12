@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { Field, Input, Button, Group, Icon } from '@xenon-kit/web';
+import { Field, Input, Button, Group, Icon, toast } from '@xenon-kit/web';
 import { Globe, Plus } from '@phosphor-icons/react';
 
 interface Props {
@@ -22,8 +22,12 @@ export function AddCompetitorForm({ submitCompetitor, adding, error }: Props) {
     }
     setValidationError('');
     try {
-      await submitCompetitor(url.trim());
+      const targetUrl = url.trim();
+      await submitCompetitor(targetUrl);
       setUrl('');
+      toast.success('Competitor Tracked', {
+        description: `Successfully added ${targetUrl}. Initial viewport crawl queued.`,
+      });
     } catch {
       // Error handled by parent mutations
     }
@@ -39,6 +43,7 @@ export function AddCompetitorForm({ submitCompetitor, adding, error }: Props) {
         <Group gap={8} align="center">
           <div style={{ flex: 1 }}>
             <Input
+              id="competitor-url-input"
               type="url"
               placeholder="https://company.com"
               value={url}
