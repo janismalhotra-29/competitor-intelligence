@@ -175,11 +175,10 @@ export default function Home() {
           {/* Hero Header */}
           <Stack gap={8}>
             <Heading level={1} styleKey="title1" weight={300} style={{ letterSpacing: '-0.02em' }}>
-              Autonomous Market Intelligence
+              Competitor Intelligence Dashboard
             </Heading>
             <Text styleKey="callout" weight={300} style={{ color: 'var(--x-text-muted)', maxWidth: '680px' }}>
-              Continuous headless Chromium surveillance, zero-blur visual pixel diff detection, and pricing intelligence
-              curated entirely within the Xenon design system.
+              Track competitor website updates, visual design shifts, and pricing tier changes in real-time.
             </Text>
           </Stack>
 
@@ -196,16 +195,16 @@ export default function Home() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList ariaLabel="Dashboard Sections">
               <TabsTrigger value="competitors" icon={<Globe weight="thin" />}>
-                Tracked Domains ({queries.competitors.length})
+                Competitors ({queries.competitors.length})
               </TabsTrigger>
               <TabsTrigger value="diffs" icon={<GitDiff weight="thin" />}>
-                Visual Diffs
+                Visual Changes ({totalChanges})
               </TabsTrigger>
               <TabsTrigger value="pricing" icon={<CurrencyDollar weight="thin" />}>
-                Pricing Intelligence
+                Pricing Comparison
               </TabsTrigger>
               <TabsTrigger value="alerts" icon={<Bell weight="thin" />}>
-                Alerts & Audit ({alertQueries.unreadCount})
+                Activity Feed ({alertQueries.unreadCount})
               </TabsTrigger>
             </TabsList>
 
@@ -242,14 +241,14 @@ export default function Home() {
                     <Group justify="space-between" align="center">
                       <div>
                         <Text styleKey="headline" weight={300}>
-                          Monitored Competitors
+                          Tracked Websites
                         </Text>
                         <Text
                           styleKey="caption1"
                           weight={300}
                           style={{ color: 'var(--x-text-muted)', marginTop: '2px' }}
                         >
-                          Real-time change detection, headless snapshots and Norman Invariant history
+                          Click &quot;Check Updates&quot; to capture a fresh screenshot, or &quot;History&quot; to review past changes
                         </Text>
                       </div>
                       <Badge variant="subtle" tone="accent">

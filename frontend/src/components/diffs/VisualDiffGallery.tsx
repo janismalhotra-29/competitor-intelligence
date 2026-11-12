@@ -88,14 +88,14 @@ export function VisualDiffGallery({
         <Group justify="space-between" align="center">
           <div>
             <Text styleKey="headline" weight={300}>
-              Visual Diff & Layout Evolution
+              Website Design & Content Changes
             </Text>
             <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)', marginTop: '2px' }}>
-              Side-by-side snapshots, pixel-diff heatmaps and zero-blur split curtains
+              Review visual changes across competitor websites with side-by-side snapshots and split-slider comparison
             </Text>
           </div>
           <Badge variant="subtle" tone="accent">
-            {allChanges.length} Changes Recorded
+            {allChanges.length} Updates Found
           </Badge>
         </Group>
       </div>
@@ -171,7 +171,7 @@ export function VisualDiffGallery({
                     <Icon size="sm">
                       <ArrowsLeftRight weight="thin" />
                     </Icon>
-                    Inspect Diff
+                    Compare Diff
                   </Button>
                 </Group>
               </div>

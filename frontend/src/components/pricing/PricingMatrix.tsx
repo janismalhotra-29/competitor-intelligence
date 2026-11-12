@@ -62,14 +62,14 @@ export function PricingMatrix({
         <Group justify="space-between" align="center">
           <div>
             <Text styleKey="headline" weight={300}>
-              Pricing Intelligence Matrix
+              Pricing Comparison Matrix
             </Text>
             <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)', marginTop: '2px' }}>
-              Real-time competitive pricing tiers, billing models, and feature packages
+              Compare subscription plans, pricing tiers, and included features across competitors
             </Text>
           </div>
           <Badge variant="subtle" tone="accent">
-            {allPlans.length} Plans Extracted
+            {allPlans.length} Tiers Tracked
           </Badge>
         </Group>
       </div>
@@ -81,7 +81,7 @@ export function PricingMatrix({
               <CurrencyDollar weight="thin" />
             </Icon>
             <Text styleKey="callout" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-              No pricing plans currently extracted. Trigger a collection cycle on tracked competitors to parse pricing grids.
+              No pricing plans extracted yet. Click &quot;Check Updates&quot; on any competitor to detect their pricing tiers.
             </Text>
           </Stack>
         </div>

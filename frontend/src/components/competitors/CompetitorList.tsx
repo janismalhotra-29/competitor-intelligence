@@ -285,7 +285,7 @@ export function CompetitorList({
                           <ArrowClockwise weight="thin" />
                         </Icon>
                       )}
-                      {isCollecting ? 'Crawling...' : 'Collect'}
+                      {isCollecting ? 'Checking...' : 'Check Updates'}
                     </Button>
 
                     {onDownloadReport && (
@@ -355,14 +355,14 @@ export function CompetitorList({
                         value={activeSubTab}
                         onValueChange={(val: string) => setActiveSubTab(val as 'snapshots' | 'revisions' | 'pricing')}
                         options={[
-                          { value: 'snapshots', label: `Snapshots (${snapshots.length})` },
-                          { value: 'revisions', label: `Revisions (${changes.length})` },
-                          { value: 'pricing', label: `Pricing Plans (${pricingPlans.length})` },
+                          { value: 'snapshots', label: `Screenshots (${snapshots.length})` },
+                          { value: 'revisions', label: `Changes Found (${changes.length})` },
+                          { value: 'pricing', label: `Pricing Tiers (${pricingPlans.length})` },
                         ]}
                       />
-                      <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-                        ID: {comp.id}
-                      </Text>
+                      <Badge variant="outline" tone="neutral" size="sm">
+                        Monitoring Active
+                      </Badge>
                     </Group>
 
                     {/* Sub-tab 1: Snapshots Table */}
@@ -371,16 +371,16 @@ export function CompetitorList({
                         {snapshots.length === 0 ? (
                           <div style={{ padding: '24px', textAlign: 'center' }}>
                             <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-                              No snapshots captured yet. Click &quot;Collect&quot; to capture the initial viewport.
+                              No screenshots captured yet. Click &quot;Check Updates&quot; to capture a new screenshot.
                             </Text>
                           </div>
                         ) : (
                           <Table variant="default" size="sm">
                             <TableHeader>
                               <TableRow>
-                                <TableHead style={{ width: '40%' }}>TIMESTAMP</TableHead>
+                                <TableHead style={{ width: '40%' }}>DATE & TIME</TableHead>
                                 <TableHead style={{ width: '25%' }}>STATUS</TableHead>
-                                <TableHead style={{ width: '35%', textAlign: 'right' }}>ACTION</TableHead>
+                                <TableHead style={{ width: '35%', textAlign: 'right' }}>PREVIEW</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -398,12 +398,12 @@ export function CompetitorList({
                                   </TableCell>
                                   <TableCell>
                                     <Badge variant="subtle" tone="accent" size="sm">
-                                      {snap.status || 'CAPTURED'}
+                                      Saved
                                     </Badge>
                                   </TableCell>
                                   <TableCell style={{ textAlign: 'right' }}>
                                     <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-                                      Viewport Ready
+                                      Full page saved
                                     </Text>
                                   </TableCell>
                                 </TableRow>
@@ -420,7 +420,7 @@ export function CompetitorList({
                         {changes.length === 0 ? (
                           <div style={{ padding: '24px', textAlign: 'center' }}>
                             <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-                              No revisions recorded yet. Changes appear automatically when DOM or layout drifts.
+                              No updates found yet. When text or layout changes on this website, they will appear here.
                             </Text>
                           </div>
                         ) : (
@@ -428,9 +428,9 @@ export function CompetitorList({
                             <TableHeader>
                               <TableRow>
                                 <TableHead style={{ width: '25%' }}>STATUS</TableHead>
-                                <TableHead style={{ width: '20%' }}>SIGNIFICANCE</TableHead>
-                                <TableHead style={{ width: '40%' }}>SUMMARY</TableHead>
-                                <TableHead style={{ width: '15%', textAlign: 'right' }}>DIFF</TableHead>
+                                <TableHead style={{ width: '20%' }}>IMPACT</TableHead>
+                                <TableHead style={{ width: '38%' }}>CHANGE SUMMARY</TableHead>
+                                <TableHead style={{ width: '17%', textAlign: 'right' }}>VISUAL DIFF</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -444,17 +444,17 @@ export function CompetitorList({
                                   <TableRow key={ch.id}>
                                     <TableCell>
                                       <Badge variant="subtle" tone={badgeTone} size="sm">
-                                        {ch.hasChanges ? 'DIFF DETECTED' : 'STABLE'}
+                                        {ch.hasChanges ? 'PAGE UPDATED' : 'STABLE'}
                                       </Badge>
                                     </TableCell>
                                     <TableCell>
                                       <Text styleKey="caption1" weight={300}>
-                                        {ch.aiSummary?.significance || 'Analyzed'}
+                                        {ch.aiSummary?.significance ? `${ch.aiSummary.significance} impact` : 'Standard'}
                                       </Text>
                                     </TableCell>
                                     <TableCell>
                                       <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-                                        {ch.aiSummary?.analysis || ch.diffSummary || 'Visual diff detected'}
+                                        {ch.aiSummary?.analysis || ch.diffSummary || 'Visual layout or content modified'}
                                       </Text>
                                     </TableCell>
                                     <TableCell style={{ textAlign: 'right' }}>
@@ -467,7 +467,7 @@ export function CompetitorList({
                                           <Icon size="sm">
                                             <ArrowsLeftRight weight="thin" />
                                           </Icon>
-                                          Inspect
+                                          Compare
                                         </Button>
                                       )}
                                     </TableCell>

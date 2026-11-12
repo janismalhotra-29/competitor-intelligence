@@ -36,12 +36,12 @@ export function MetricsRibbon({
           alignItems: 'stretch',
         }}
       >
-        {/* Metric 1: Tracked Domains */}
+        {/* Metric 1: Monitored Competitors */}
         <div style={{ padding: '20px 24px' }}>
           <Stack gap={8}>
             <Group justify="space-between" align="center">
               <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-                TRACKED DOMAINS
+                COMPETITORS
               </Text>
               <Icon size="sm" style={{ color: 'var(--x-accent)' }}>
                 <Globe weight="thin" />
@@ -56,19 +56,19 @@ export function MetricsRibbon({
               </Badge>
             </Group>
             <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-              Autonomous continuous observation
+              Websites currently being monitored
             </Text>
           </Stack>
         </div>
 
         <Divider orientation="vertical" />
 
-        {/* Metric 2: Visual Snapshots */}
+        {/* Metric 2: Screenshots Captured */}
         <div style={{ padding: '20px 24px' }}>
           <Stack gap={8}>
             <Group justify="space-between" align="center">
               <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-                TOTAL SNAPSHOTS
+                SCREENSHOTS
               </Text>
               <Icon size="sm" style={{ color: 'var(--x-accent)' }}>
                 <GitDiff weight="thin" />
@@ -79,23 +79,23 @@ export function MetricsRibbon({
                 {totalSnapshots}
               </Text>
               <Badge variant="outline" tone="neutral" size="sm">
-                Pixel-diff ready
+                Saved
               </Badge>
             </Group>
             <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-              Headless Chromium viewports captured
+              Visual snapshots available for comparison
             </Text>
           </Stack>
         </div>
 
         <Divider orientation="vertical" />
 
-        {/* Metric 3: Detected Changes */}
+        {/* Metric 3: Updates Found */}
         <div style={{ padding: '20px 24px' }}>
           <Stack gap={8}>
             <Group justify="space-between" align="center">
               <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-                CHANGES DETECTED
+                UPDATES FOUND
               </Text>
               <Icon size="sm" style={{ color: 'var(--x-accent)' }}>
                 <Waveform weight="thin" />
@@ -106,18 +106,18 @@ export function MetricsRibbon({
                 {totalChanges}
               </Text>
               <Badge variant="subtle" tone={totalChanges > 0 ? 'accent' : 'neutral'} size="sm">
-                {totalChanges > 0 ? 'AI Classified' : 'Stable'}
+                {totalChanges > 0 ? 'New Updates' : 'No Changes'}
               </Badge>
             </Group>
             <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-              Layout, DOM structure & copy deltas
+              Website design, copy, or layout shifts
             </Text>
           </Stack>
         </div>
 
         <Divider orientation="vertical" />
 
-        {/* Metric 4: Pricing Plans */}
+        {/* Metric 4: Pricing Plans Monitored */}
         <div style={{ padding: '20px 24px' }}>
           <Stack gap={8}>
             <Group justify="space-between" align="center">
@@ -133,11 +133,11 @@ export function MetricsRibbon({
                 {totalPricingPlans}
               </Text>
               <Badge variant="subtle" tone="accent" size="sm">
-                {isLive ? '15s Cadence' : 'Standby'}
+                {isLive ? 'Auto-checking' : 'Paused'}
               </Badge>
             </Group>
             <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
-              Extracted tier rates & feature maps
+              Competitor pricing tiers extracted
             </Text>
           </Stack>
         </div>

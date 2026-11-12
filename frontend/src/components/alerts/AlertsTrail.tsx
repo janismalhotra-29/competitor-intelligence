@@ -37,10 +37,10 @@ export function AlertsTrail({ alerts, onMarkRead, onMarkAllRead }: AlertsTrailPr
         <Group justify="space-between" align="center">
           <div>
             <Text styleKey="headline" weight={300}>
-              System Alerts & Audit Trail
+              Activity & Notification Feed
             </Text>
             <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)', marginTop: '2px' }}>
-              Real-time feed of detected visual diffs, crawl completions, and system events
+              Recent alerts, detected website updates, and completed screenshot checks
             </Text>
           </div>
           <Group gap={12} align="center">
