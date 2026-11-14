@@ -23,8 +23,7 @@ import {
   Bell,
   MagnifyingGlass,
 } from '@phosphor-icons/react';
-import { AddCompetitorForm } from '@/components/competitors/AddCompetitorForm';
-import { CompetitorList } from '@/components/competitors/CompetitorList';
+import { SplitDossierView } from '@/components/dashboard/SplitDossierView';
 import { AlertsDropdown } from '@/components/alerts/AlertsDropdown';
 import { SnapshotDiffModal } from '@/components/changes/SnapshotDiffModal';
 import { MetricsRibbon } from '@/components/dashboard/MetricsRibbon';
@@ -40,6 +39,7 @@ export default function Home() {
   const { queries: alertQueries, mutations: alertMutations } = useAlerts();
 
   const [activeTab, setActiveTab] = useState('competitors');
+  const [selectedCompetitorId, setSelectedCompetitorId] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   // Global Keyboard Shortcut for Command Palette (⌘K / Ctrl+K)
@@ -208,72 +208,26 @@ export default function Home() {
               </TabsTrigger>
             </TabsList>
 
-            {/* TAB 1: Competitors Management */}
+            {/* TAB 1: Competitors Management (Executive Split Dossier) */}
             <TabsContent value="competitors">
-              <Stack gap={24} style={{ marginTop: '20px' }}>
-                {/* Add Competitor Form */}
-                <Surface
-                  variant="default"
-                  padding={24}
-                  style={{
-                    borderRadius: 'var(--x-radius)',
-                    border: '1px solid var(--x-border)',
-                  }}
-                >
-                  <AddCompetitorForm
-                    submitCompetitor={mutations.addCompetitorMutation}
-                    adding={mutations.adding}
-                    error={queries.error}
-                  />
-                </Surface>
-
-                {/* Tracked Domains Surface */}
-                <Surface
-                  variant="default"
-                  padding={0}
-                  style={{
-                    borderRadius: 'var(--x-radius)',
-                    border: '1px solid var(--x-border)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--x-border)' }}>
-                    <Group justify="space-between" align="center">
-                      <div>
-                        <Text styleKey="headline" weight={300}>
-                          Tracked Websites
-                        </Text>
-                        <Text
-                          styleKey="caption1"
-                          weight={300}
-                          style={{ color: 'var(--x-text-muted)', marginTop: '2px' }}
-                        >
-                          Click &quot;Check Updates&quot; to capture a fresh screenshot, or &quot;History&quot; to review past changes
-                        </Text>
-                      </div>
-                      <Badge variant="subtle" tone="accent">
-                        {queries.competitors.length} Active
-                      </Badge>
-                    </Group>
-                  </div>
-
-                  <CompetitorList
-                    competitors={queries.competitors}
-                    loading={queries.loading}
-                    onDelete={mutations.deleteCompetitorMutation}
-                    onCollect={mutations.triggerCollectionMutation}
-                    collectingMap={mutations.collectingMap}
-                    snapshotsMap={queries.snapshotsMap}
-                    loadSnapshots={queries.loadSnapshots}
-                    changesMap={queries.changesMap}
-                    loadChanges={queries.loadChanges}
-                    pricingMap={queries.pricingMap}
-                    loadPricing={queries.loadPricing}
-                    onInspectDiff={queries.loadChangeDiff}
-                    onDownloadReport={queries.downloadReport}
-                  />
-                </Surface>
-              </Stack>
+              <div style={{ marginTop: '20px' }}>
+                <SplitDossierView
+                  competitors={queries.competitors}
+                  loading={queries.loading}
+                  selectedId={selectedCompetitorId}
+                  onSelectCompetitor={setSelectedCompetitorId}
+                  onAddCompetitor={mutations.addCompetitorMutation}
+                  adding={mutations.adding}
+                  onDeleteCompetitor={mutations.deleteCompetitorMutation}
+                  onTriggerCollect={mutations.triggerCollectionMutation}
+                  collectingMap={mutations.collectingMap}
+                  snapshotsMap={queries.snapshotsMap}
+                  changesMap={queries.changesMap}
+                  pricingMap={queries.pricingMap}
+                  onInspectDiff={queries.loadChangeDiff}
+                  onDownloadReport={queries.downloadReport}
+                />
+              </div>
             </TabsContent>
 
             {/* TAB 2: Visual Diffs & Heatmaps Gallery */}
