@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import * as dns from 'dns';
 import { isPrivateOrReservedIp, validatePublicUrl } from './url-validator.js';
 
 describe('url-validator SSRF protection', () => {
@@ -60,6 +61,7 @@ describe('url-validator SSRF protection', () => {
     });
 
     it('should accept valid public URLs', async () => {
+      vi.spyOn(dns.promises, 'lookup').mockResolvedValueOnce([{ address: '93.184.216.34', family: 4 }] as any);
       const res = await validatePublicUrl('https://example.com');
       expect(res.valid).toBe(true);
       expect(res.parsedUrl?.hostname).toBe('example.com');
