@@ -378,6 +378,7 @@ export function EasyCompetitorFeed({
                         size="sm"
                         onClick={() => handleDownload(comp.id, comp.url, domain)}
                         aria-label="Download markdown report"
+                        title="Download markdown report"
                       >
                         <Icon size="sm" style={{ color: 'var(--x-text-muted)' }}>
                           <FileText weight="thin" />
@@ -389,6 +390,7 @@ export function EasyCompetitorFeed({
                         size="sm"
                         onClick={() => setDeleteTarget(comp)}
                         aria-label="Delete website"
+                        title="Delete website"
                       >
                         <Icon size="sm" style={{ color: 'var(--x-text-muted)' }}>
                           <Trash weight="thin" />
