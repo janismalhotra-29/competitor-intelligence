@@ -96,15 +96,21 @@ export function EasyCompetitorFeed({
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUrl.trim()) return;
-    const targetUrl = newUrl.trim();
+    let targetUrl = newUrl.trim();
+    if (!/^https?:\/\//i.test(targetUrl)) {
+      targetUrl = `https://${targetUrl}`;
+    }
     try {
       await onAddCompetitor(targetUrl);
       setNewUrl('');
       toast.success('Website Added', {
         description: `Now monitoring ${targetUrl} for visual and text changes.`,
       });
-    } catch {
-      // Handled upstream
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error('Failed to add website', {
+        description: msg || 'Please verify the URL or ensure the backend server is running.',
+      });
     }
   };
 
@@ -166,10 +172,10 @@ export function EasyCompetitorFeed({
                 <Input
                   id="competitor-url-input"
                   size="md"
-                  placeholder="https://company.com"
+                  placeholder="https://company.com or stripe.com"
                   value={newUrl}
                   onChange={(e) => setNewUrl(e.target.value)}
-                  type="url"
+                  type="text"
                   required
                   prefix={
                     <Icon size="sm" style={{ color: 'var(--x-text-muted)' }}>

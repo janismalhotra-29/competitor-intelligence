@@ -140,8 +140,9 @@ export function useCompetitors() {
       await apiAddCompetitor(url);
       await loadCompetitors();
     } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message);
-      else setError(String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+      throw new Error(msg);
     } finally {
       setAdding(false);
     }
