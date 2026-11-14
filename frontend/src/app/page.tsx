@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import {
   GlassBar,
-  Surface,
   Stack,
   Group,
   Heading,
@@ -23,7 +22,7 @@ import {
   Bell,
   MagnifyingGlass,
 } from '@phosphor-icons/react';
-import { SplitDossierView } from '@/components/dashboard/SplitDossierView';
+import { EasyCompetitorFeed } from '@/components/dashboard/EasyCompetitorFeed';
 import { AlertsDropdown } from '@/components/alerts/AlertsDropdown';
 import { SnapshotDiffModal } from '@/components/changes/SnapshotDiffModal';
 import { MetricsRibbon } from '@/components/dashboard/MetricsRibbon';
@@ -39,7 +38,6 @@ export default function Home() {
   const { queries: alertQueries, mutations: alertMutations } = useAlerts();
 
   const [activeTab, setActiveTab] = useState('competitors');
-  const [selectedCompetitorId, setSelectedCompetitorId] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   // Global Keyboard Shortcut for Command Palette (⌘K / Ctrl+K)
@@ -73,7 +71,7 @@ export default function Home() {
       <GlassBar
         sticky
         bordered
-        maxWidth="1140px"
+        maxWidth="920px"
         brand={
           <Group gap={12} align="center">
             <div
@@ -170,15 +168,15 @@ export default function Home() {
       </GlassBar>
 
       {/* Main Content Area */}
-      <main style={{ maxWidth: '1140px', margin: '0 auto', padding: '40px 24px 80px 24px' }}>
-        <Stack gap={32}>
+      <main style={{ maxWidth: '920px', margin: '0 auto', padding: '40px 24px 80px 24px' }}>
+        <Stack gap={28}>
           {/* Hero Header */}
-          <Stack gap={8}>
+          <Stack gap={6}>
             <Heading level={1} styleKey="title1" weight={300} style={{ letterSpacing: '-0.02em' }}>
-              Competitor Intelligence Dashboard
+              Competitor Intelligence
             </Heading>
-            <Text styleKey="callout" weight={300} style={{ color: 'var(--x-text-muted)', maxWidth: '680px' }}>
-              Track competitor website updates, visual design shifts, and pricing tier changes in real-time.
+            <Text styleKey="callout" weight={300} style={{ color: 'var(--x-text-muted)', maxWidth: '620px' }}>
+              Automated website surveillance, visual design diffs, and pricing intelligence.
             </Text>
           </Stack>
 
@@ -208,14 +206,12 @@ export default function Home() {
               </TabsTrigger>
             </TabsList>
 
-            {/* TAB 1: Competitors Management (Executive Split Dossier) */}
+            {/* TAB 1: Monitored Websites Feed */}
             <TabsContent value="competitors">
               <div style={{ marginTop: '20px' }}>
-                <SplitDossierView
+                <EasyCompetitorFeed
                   competitors={queries.competitors}
                   loading={queries.loading}
-                  selectedId={selectedCompetitorId}
-                  onSelectCompetitor={setSelectedCompetitorId}
                   onAddCompetitor={mutations.addCompetitorMutation}
                   adding={mutations.adding}
                   onDeleteCompetitor={mutations.deleteCompetitorMutation}
