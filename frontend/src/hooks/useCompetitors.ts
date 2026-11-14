@@ -19,12 +19,54 @@ export function useCompetitors() {
     try {
       const data = await fetchCompetitors();
       setCompetitors(data);
+      if (Array.isArray(data)) {
+        data.forEach((c) => {
+          apiGetSnapshots(c.id).then((snaps) => setSnapshotsMap((prev) => ({ ...prev, [c.id]: snaps }))).catch(() => {});
+          apiGetChanges(c.id).then((chgs) => setChangesMap((prev) => ({ ...prev, [c.id]: chgs }))).catch(() => {});
+          fetchPricingPlans(c.id).then((prc) => setPricingMap((prev) => ({ ...prev, [c.id]: prc }))).catch(() => {});
+        });
+      }
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
       else setError(String(err));
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    let isMounted = true;
+    fetchCompetitors()
+      .then((data) => {
+        if (isMounted) {
+          setCompetitors(data);
+          setLoading(false);
+          if (Array.isArray(data)) {
+            data.forEach((c) => {
+              apiGetSnapshots(c.id).then((snaps) => {
+                if (isMounted) setSnapshotsMap((prev) => ({ ...prev, [c.id]: snaps }));
+              }).catch(() => {});
+              apiGetChanges(c.id).then((chgs) => {
+                if (isMounted) setChangesMap((prev) => ({ ...prev, [c.id]: chgs }));
+              }).catch(() => {});
+              fetchPricingPlans(c.id).then((prc) => {
+                if (isMounted) setPricingMap((prev) => ({ ...prev, [c.id]: prc }));
+              }).catch(() => {});
+            });
+          }
+        }
+      })
+      .catch((err: unknown) => {
+        if (isMounted) {
+          if (err instanceof Error) setError(err.message);
+          else setError(String(err));
+          setLoading(false);
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const loadSnapshots = useCallback(async (id: string) => {

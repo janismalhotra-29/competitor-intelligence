@@ -1,5 +1,54 @@
-import { useEffect, useState } from 'react';
+'use client';
+
+import { useState } from 'react';
 import type { Competitor, Snapshot, Change, PricingPlan } from '@/types';
+import {
+  Stack,
+  Group,
+  Text,
+  Badge,
+  Button,
+  IconButton,
+  Icon,
+  Divider,
+  Input,
+  SegmentedControl,
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+  Avatar,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+  Spinner,
+  toast,
+} from '@xenon-kit/web';
+import {
+  Globe,
+  ArrowClockwise,
+  ClockCounterClockwise,
+  FileText,
+  Trash,
+  ArrowsLeftRight,
+  CaretDown,
+  MagnifyingGlass,
+  Camera,
+} from '@phosphor-icons/react';
+
+function extractDomain(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url.replace(/https?:\/\//, '').split('/')[0] || url;
+  }
+}
 
 interface Props {
   competitors: Competitor[];
@@ -32,286 +81,500 @@ export function CompetitorList({
   loadPricing,
   onDownloadReport,
 }: Props) {
-  useEffect(() => {
-    competitors.forEach((comp) => {
-      if (!snapshotsMap[comp.id]) {
-        loadSnapshots(comp.id);
-      }
-      if (loadChanges && (!changesMap || !changesMap[comp.id])) {
-        loadChanges(comp.id);
-      }
-      if (loadPricing && (!pricingMap || !pricingMap[comp.id])) {
-        loadPricing(comp.id);
-      }
-    });
-  }, [competitors, loadSnapshots, snapshotsMap, loadChanges, changesMap, loadPricing, pricingMap]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeSubTab, setActiveSubTab] = useState<'snapshots' | 'revisions' | 'pricing'>('snapshots');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterMode, setFilterMode] = useState('all');
+  const [deleteTarget, setDeleteTarget] = useState<Competitor | null>(null);
 
-  const [expandedHistory, setExpandedHistory] = useState<Record<string, boolean>>({});
+  // Filter competitors based on search and segment
+  const filteredCompetitors = competitors.filter((c) => {
+    const domain = extractDomain(c.url);
+    const query = searchQuery.toLowerCase();
 
-  const toggleHistory = (id: string) => {
-    setExpandedHistory((prev) => ({ ...prev, [id]: !prev[id] }));
+    const matchesSearch =
+      domain.toLowerCase().includes(query) ||
+      c.url.toLowerCase().includes(query);
+
+    if (!matchesSearch) return false;
+    if (filterMode === 'changes') {
+      const changes = changesMap?.[c.id] || [];
+      return changes.length > 0;
+    }
+    return true;
+  });
+
+  const toggleExpand = (id: string) => {
+    if (expandedId === id) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(id);
+      loadSnapshots(id);
+      if (loadChanges) loadChanges(id);
+      if (loadPricing) loadPricing(id);
+    }
   };
 
-  if (loading) return <div className="p-6 text-gray-500 text-center">Loading competitors...</div>;
-  if (competitors.length === 0) return <div className="p-6 text-gray-500 text-center">No competitors tracked yet.</div>;
+  const handleTriggerCollect = (id: string, domain: string) => {
+    toast.info('Crawl Initiated', {
+      description: `Capturing viewport screenshot and analyzing DOM for ${domain}...`,
+    });
+    onCollect(id);
+  };
+
+  const handleDownloadReport = (id: string, url: string, domain: string) => {
+    if (onDownloadReport) {
+      onDownloadReport(id, url);
+      toast.success('Report Exported', {
+        description: `Intelligence Markdown report generated for ${domain}.`,
+      });
+    }
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    const name = extractDomain(deleteTarget.url);
+    onDelete(deleteTarget.id);
+    setDeleteTarget(null);
+    toast.warning('Competitor Removed', {
+      description: `${name} has been removed from autonomous observation.`,
+    });
+  };
+
+  if (loading && competitors.length === 0) {
+    return (
+      <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+        <Group justify="center" gap={12} align="center">
+          <Spinner size="sm" />
+          <Text styleKey="callout" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+            Loading tracked competitors from database...
+          </Text>
+        </Group>
+      </div>
+    );
+  }
+
+  if (competitors.length === 0) {
+    return (
+      <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+        <Stack gap={16} align="center">
+          <Icon size="lg" style={{ color: 'var(--x-text-muted)' }}>
+            <Globe weight="thin" />
+          </Icon>
+          <Text styleKey="headline" weight={300}>
+            No competitors tracked yet
+          </Text>
+          <Text styleKey="callout" weight={300} style={{ color: 'var(--x-text-muted)', maxWidth: '440px' }}>
+            Enter a domain URL above to begin autonomous monitoring, visual pixel diff tracking, and pricing intelligence.
+          </Text>
+        </Stack>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4 p-6">
-      {competitors.map((comp) => {
-        const snapshots = snapshotsMap[comp.id] || [];
-        const latestSnapshot = snapshots.length > 0 ? snapshots[0] : null;
-        const changes = (changesMap && changesMap[comp.id]) || [];
-        const latestChange = changes.length > 0 ? changes[0] : null;
-        const pricingPlans = (pricingMap && pricingMap[comp.id]) || [];
-        const isCollecting = collectingMap[comp.id];
-        const showHistory = expandedHistory[comp.id];
-
-        return (
-          <div
-            key={comp.id}
-            className="group flex flex-col p-4 bg-white dark:bg-zinc-800/80 border border-gray-100 dark:border-zinc-700/50 rounded-xl hover:shadow-md hover:border-blue-100 dark:hover:border-blue-900/30 transition-all"
-          >
-            <div className="flex justify-between items-center w-full">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                  </svg>
-                </div>
-                <div>
-                  <a
-                    href={comp.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-gray-900 dark:text-gray-100 font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  >
-                    {comp.url}
-                  </a>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                      Active
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      Added {new Date(comp.createdAt).toLocaleDateString()}
-                    </span>
-                    {latestChange && latestChange.hasChanges && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 ml-2">
-                        Changes Detected
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onCollect(comp.id)}
-                  disabled={isCollecting}
-                  className="text-sm px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg transition-colors font-medium disabled:opacity-50"
-                >
-                  {isCollecting ? 'Collecting...' : 'Collect Snapshot'}
-                </button>
-                <button
-                  onClick={() => toggleHistory(comp.id)}
-                  className="text-sm px-3 py-1.5 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-700/50 dark:hover:bg-zinc-700 text-gray-600 dark:text-gray-300 rounded-lg transition-colors font-medium"
-                >
-                  {showHistory ? 'Hide History' : 'View History'}
-                </button>
-                {onDownloadReport && (
-                  <button
-                    onClick={() => onDownloadReport(comp.id, comp.url)}
-                    className="text-sm px-3 py-1.5 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-700/50 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors font-medium flex items-center gap-1.5"
-                    title="Download Executive Intelligence Report (.md)"
-                  >
-                    <span>📄</span> Report
-                  </button>
-                )}
-                <button
-                  onClick={() => onDelete(comp.id)}
-                  className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-2 rounded-lg transition-all focus:opacity-100"
-                  title="Delete competitor"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {latestSnapshot && !showHistory && (
-              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-zinc-700/50 flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Latest Snapshot</span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      latestSnapshot.status === 'SUCCESS'
-                        ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                    }`}
-                  >
-                    {latestSnapshot.status}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <div>
-                    <span className="text-gray-400 dark:text-gray-500">Title:</span> {latestSnapshot.pageTitle || 'N/A'}
-                  </div>
-                  <div>
-                    <span className="text-gray-400 dark:text-gray-500">Captured:</span> {new Date(latestSnapshot.capturedAt).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Pricing Tiers Display */}
-            {pricingPlans.length > 0 && !showHistory && (
-              <div className="mt-3 p-3 bg-indigo-50/70 dark:bg-indigo-950/20 rounded-xl text-xs border border-indigo-100/80 dark:border-indigo-900/40">
-                <div className="font-semibold text-indigo-900 dark:text-indigo-300 mb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span>🏷️</span> Identified Pricing & Plans
-                  </span>
-                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-full">
-                    {pricingPlans.length} tiers
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {pricingPlans.map((plan) => (
-                    <div
-                      key={plan.id}
-                      className="px-2.5 py-1.5 bg-white dark:bg-zinc-800 rounded-lg border border-indigo-100 dark:border-zinc-700 shadow-xs flex items-center gap-1.5"
-                    >
-                      <span className="font-medium text-gray-700 dark:text-gray-200">{plan.name}:</span>
-                      <span className="font-bold text-indigo-600 dark:text-indigo-400">{plan.price}</span>
-                      {plan.period && <span className="text-gray-400 text-[10px]">/{plan.period}</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {latestChange && latestChange.hasChanges && !showHistory && (
-              <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg text-sm border border-yellow-100 dark:border-yellow-900/30">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold text-yellow-800 dark:text-yellow-500">Difference Summary</span>
-                  {onInspectDiff && (
-                    <button
-                      onClick={() => onInspectDiff(comp.id, latestChange.id)}
-                      className="text-xs font-semibold px-2.5 py-0.5 bg-yellow-200/80 hover:bg-yellow-300 dark:bg-yellow-900/50 dark:hover:bg-yellow-900/80 text-yellow-900 dark:text-yellow-200 rounded-md transition-colors"
-                    >
-                      Inspect Diff →
-                    </button>
-                  )}
-                </div>
-                <div className="text-yellow-700 dark:text-yellow-400/90">{latestChange.diffSummary}</div>
-
-                {latestChange.aiSummary ? (
-                  <div className="mt-3 pt-3 border-t border-yellow-200 dark:border-yellow-800/50">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-blue-800 dark:text-blue-400">✨ AI Analysis</span>
-                      <span
-                        className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                          latestChange.aiSummary.significance === 'HIGH'
-                            ? 'bg-red-100 text-red-700'
-                            : latestChange.aiSummary.significance === 'MEDIUM'
-                            ? 'bg-orange-100 text-orange-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {latestChange.aiSummary.significance} IMPACT
-                      </span>
-                    </div>
-                    <div className="text-gray-700 dark:text-gray-300 italic whitespace-pre-wrap">
-                      {latestChange.aiSummary.analysis}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-2 text-xs text-gray-500 italic flex items-center gap-1">
-                    <span className="animate-pulse">●</span> AI analyzing changes...
-                  </div>
-                )}
-              </div>
-            )}
-
-            {latestChange && !latestChange.hasChanges && !showHistory && (
-              <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm border border-gray-100 dark:border-gray-700/50">
-                <div className="text-gray-500 dark:text-gray-400">No textual changes detected in the last scan.</div>
-              </div>
-            )}
-
-            {showHistory && (
-              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-700/50">
-                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">Change History</h4>
-                {changes.length === 0 ? (
-                  <div className="text-sm text-gray-500">No history available.</div>
-                ) : (
-                  <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 dark:before:via-zinc-700 before:to-transparent">
-                    {changes.map((change) => (
-                      <div key={change.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                        <div className="flex items-center justify-center w-6 h-6 rounded-full border border-white dark:border-zinc-900 bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                          <div className={`w-2 h-2 rounded-full ${change.hasChanges ? 'bg-yellow-500' : 'bg-gray-400'}`}></div>
-                        </div>
-
-                        <div className="w-[calc(100%-2.5rem)] md:w-[calc(50%-1.5rem)] p-3 rounded-xl border border-gray-100 dark:border-zinc-700/50 bg-gray-50 dark:bg-zinc-800/50 shadow-sm">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                              {new Date(change.detectedAt).toLocaleString()}
-                            </span>
-                            {change.hasChanges ? (
-                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500">
-                                Changes
-                              </span>
-                            ) : (
-                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                No Changes
-                              </span>
-                            )}
-                          </div>
-
-                          {change.hasChanges && change.diffSummary && (
-                            <div className="mt-2 flex items-center justify-between gap-2">
-                              <span className="text-sm text-gray-700 dark:text-gray-300">{change.diffSummary}</span>
-                              {onInspectDiff && (
-                                <button
-                                  onClick={() => onInspectDiff(comp.id, change.id)}
-                                  className="text-[11px] font-semibold px-2 py-0.5 bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 text-gray-700 dark:text-gray-200 rounded transition-colors whitespace-nowrap shrink-0"
-                                >
-                                  Inspect Diff →
-                                </button>
-                              )}
-                            </div>
-                          )}
-
-                          {change.aiSummary && (
-                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-zinc-700/50">
-                              <div className="flex items-center gap-1 mb-1">
-                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">AI Analysis</span>
-                                <span
-                                  className={`text-[9px] uppercase font-bold px-1 py-0.5 rounded ${
-                                    change.aiSummary.significance === 'HIGH'
-                                      ? 'bg-red-100 text-red-700'
-                                      : change.aiSummary.significance === 'MEDIUM'
-                                      ? 'bg-orange-100 text-orange-700'
-                                      : 'bg-gray-100 text-gray-700'
-                                  }`}
-                                >
-                                  {change.aiSummary.significance}
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 italic line-clamp-3 hover:line-clamp-none transition-all">
-                                {change.aiSummary.analysis}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+    <>
+      {/* Sub-header with Search and Filter */}
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--x-border)' }}>
+        <Group justify="space-between" align="center" wrap="wrap" gap={12}>
+          <div style={{ width: '280px' }}>
+            <Input
+              size="sm"
+              placeholder="Filter by domain..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              prefix={
+                <Icon size="sm" style={{ color: 'var(--x-text-muted)' }}>
+                  <MagnifyingGlass weight="thin" />
+                </Icon>
+              }
+            />
           </div>
-        );
-      })}
-    </div>
+
+          <Group gap={12} align="center">
+            <SegmentedControl
+              size="sm"
+              value={filterMode}
+              onValueChange={setFilterMode}
+              options={[
+                { value: 'all', label: `All (${competitors.length})` },
+                { value: 'changes', label: 'With Changes' },
+              ]}
+            />
+          </Group>
+        </Group>
+      </div>
+
+      {/* Competitors List */}
+      <Stack gap={0}>
+        {filteredCompetitors.map((comp, index) => {
+          const isExpanded = expandedId === comp.id;
+          const isCollecting = !!collectingMap[comp.id];
+          const snapshots = snapshotsMap[comp.id] || [];
+          const changes = changesMap?.[comp.id] || [];
+          const pricingPlans = pricingMap?.[comp.id] || [];
+          const domain = extractDomain(comp.url);
+          const domainInitials = domain
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .slice(0, 2)
+            .toUpperCase() || 'CO';
+
+          return (
+            <div key={comp.id} data-testid="competitor-row">
+              {index > 0 && <Divider />}
+
+              {/* Main Competitor Row */}
+              <div
+                style={{
+                  padding: '20px 24px',
+                  transition: 'background-color 0.2s ease',
+                  backgroundColor: isExpanded ? 'var(--x-surface-1)' : 'transparent',
+                }}
+              >
+                <Group justify="space-between" align="center" wrap="wrap" gap={16}>
+                  {/* Left: Avatar + Identity */}
+                  <Group gap={16} align="center">
+                    <Avatar fallback={domainInitials} size="md" />
+
+                    <div>
+                      <Group gap={8} align="center">
+                        <Text styleKey="callout" weight={400} style={{ color: 'var(--x-text)' }}>
+                          {domain}
+                        </Text>
+                        <Badge variant="subtle" tone="accent" size="sm">
+                          Active
+                        </Badge>
+                        {changes.length > 0 && (
+                          <Badge variant="outline" tone="neutral" size="sm">
+                            {changes.length} Changes
+                          </Badge>
+                        )}
+                      </Group>
+                      <Group gap={8} align="center" style={{ marginTop: '4px' }}>
+                        <a
+                          href={comp.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            textDecoration: 'none',
+                            color: 'var(--x-text-muted)',
+                            fontSize: '13px',
+                          }}
+                        >
+                          {comp.url}
+                        </a>
+                        <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                          · 15s interval
+                        </Text>
+                      </Group>
+                    </div>
+                  </Group>
+
+                  {/* Right: Actions */}
+                  <Group gap={8} align="center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={isCollecting}
+                      onClick={() => handleTriggerCollect(comp.id, domain)}
+                    >
+                      {isCollecting ? (
+                        <Spinner size="sm" />
+                      ) : (
+                        <Icon size="sm">
+                          <ArrowClockwise weight="thin" />
+                        </Icon>
+                      )}
+                      {isCollecting ? 'Checking...' : 'Check Updates'}
+                    </Button>
+
+                    {onDownloadReport && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownloadReport(comp.id, comp.url, domain)}
+                      >
+                        <Icon size="sm">
+                          <FileText weight="thin" />
+                        </Icon>
+                        Report
+                      </Button>
+                    )}
+
+                    {/* Norman Invariant Rotating Disclosure Trigger */}
+                    <Button
+                      variant={isExpanded ? 'accent' : 'subtle'}
+                      size="sm"
+                      onClick={() => toggleExpand(comp.id)}
+                    >
+                      <Icon size="sm">
+                        <ClockCounterClockwise weight="thin" />
+                      </Icon>
+                      History
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                        }}
+                      >
+                        <Icon size="sm">
+                          <CaretDown weight="thin" />
+                        </Icon>
+                      </span>
+                    </Button>
+
+                    <IconButton
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Delete Competitor"
+                      onClick={() => setDeleteTarget(comp)}
+                    >
+                      <Icon size="sm" style={{ color: 'var(--x-text-muted)' }}>
+                        <Trash weight="thin" />
+                      </Icon>
+                    </IconButton>
+                  </Group>
+                </Group>
+              </div>
+
+              {/* Norman Invariant Expanded Disclosure Panel */}
+              {isExpanded && (
+                <div
+                  style={{
+                    padding: '20px 24px 28px 24px',
+                    borderTop: '1px solid var(--x-border)',
+                    backgroundColor: 'var(--x-surface-1)',
+                  }}
+                >
+                  <Stack gap={16}>
+                    {/* Segmented Control for Sub-tabs */}
+                    <Group justify="space-between" align="center">
+                      <SegmentedControl
+                        size="sm"
+                        value={activeSubTab}
+                        onValueChange={(val: string) => setActiveSubTab(val as 'snapshots' | 'revisions' | 'pricing')}
+                        options={[
+                          { value: 'snapshots', label: `Screenshots (${snapshots.length})` },
+                          { value: 'revisions', label: `Changes Found (${changes.length})` },
+                          { value: 'pricing', label: `Pricing Tiers (${pricingPlans.length})` },
+                        ]}
+                      />
+                      <Badge variant="outline" tone="neutral" size="sm">
+                        Monitoring Active
+                      </Badge>
+                    </Group>
+
+                    {/* Sub-tab 1: Snapshots Table */}
+                    {activeSubTab === 'snapshots' && (
+                      <div>
+                        {snapshots.length === 0 ? (
+                          <div style={{ padding: '24px', textAlign: 'center' }}>
+                            <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                              No screenshots captured yet. Click &quot;Check Updates&quot; to capture a new screenshot.
+                            </Text>
+                          </div>
+                        ) : (
+                          <Table variant="default" size="sm">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead style={{ width: '40%' }}>DATE & TIME</TableHead>
+                                <TableHead style={{ width: '25%' }}>STATUS</TableHead>
+                                <TableHead style={{ width: '35%', textAlign: 'right' }}>PREVIEW</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {snapshots.map((snap) => (
+                                <TableRow key={snap.id}>
+                                  <TableCell>
+                                    <Group gap={6} align="center">
+                                      <Icon size="sm" style={{ color: 'var(--x-text-muted)' }}>
+                                        <Camera weight="thin" />
+                                      </Icon>
+                                      <Text styleKey="caption1" weight={300}>
+                                        {new Date(snap.capturedAt).toLocaleString()}
+                                      </Text>
+                                    </Group>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="subtle" tone="accent" size="sm">
+                                      Saved
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell style={{ textAlign: 'right' }}>
+                                    <Text styleKey="caption2" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                                      Full page saved
+                                    </Text>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sub-tab 2: Revisions Table */}
+                    {activeSubTab === 'revisions' && (
+                      <div>
+                        {changes.length === 0 ? (
+                          <div style={{ padding: '24px', textAlign: 'center' }}>
+                            <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                              No updates found yet. When text or layout changes on this website, they will appear here.
+                            </Text>
+                          </div>
+                        ) : (
+                          <Table variant="default" size="sm">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead style={{ width: '25%' }}>STATUS</TableHead>
+                                <TableHead style={{ width: '20%' }}>IMPACT</TableHead>
+                                <TableHead style={{ width: '38%' }}>CHANGE SUMMARY</TableHead>
+                                <TableHead style={{ width: '17%', textAlign: 'right' }}>VISUAL DIFF</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {changes.map((ch) => {
+                                const sig = ch.aiSummary?.significance?.toLowerCase() || 'medium';
+                                const isHigh = sig === 'high';
+                                const isMedium = sig === 'medium';
+                                const badgeTone = isHigh ? 'danger' : isMedium ? 'accent' : 'neutral';
+
+                                return (
+                                  <TableRow key={ch.id}>
+                                    <TableCell>
+                                      <Badge variant="subtle" tone={badgeTone} size="sm">
+                                        {ch.hasChanges ? 'PAGE UPDATED' : 'STABLE'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Text styleKey="caption1" weight={300}>
+                                        {ch.aiSummary?.significance ? `${ch.aiSummary.significance} impact` : 'Standard'}
+                                      </Text>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                                        {ch.aiSummary?.analysis || ch.diffSummary || 'Visual layout or content modified'}
+                                      </Text>
+                                    </TableCell>
+                                    <TableCell style={{ textAlign: 'right' }}>
+                                      {onInspectDiff && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => onInspectDiff(comp.id, ch.id)}
+                                        >
+                                          <Icon size="sm">
+                                            <ArrowsLeftRight weight="thin" />
+                                          </Icon>
+                                          Compare
+                                        </Button>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sub-tab 3: Pricing Plans Table */}
+                    {activeSubTab === 'pricing' && (
+                      <div>
+                        {pricingPlans.length === 0 ? (
+                          <div style={{ padding: '24px', textAlign: 'center' }}>
+                            <Text styleKey="caption1" weight={300} style={{ color: 'var(--x-text-muted)' }}>
+                              No pricing tiers extracted yet for this competitor.
+                            </Text>
+                          </div>
+                        ) : (
+                          <Table variant="default" size="sm">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead style={{ width: '25%' }}>PLAN</TableHead>
+                                <TableHead style={{ width: '25%' }}>RATE</TableHead>
+                                <TableHead style={{ width: '50%' }}>FEATURES</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {pricingPlans.map((plan, pIdx) => {
+                                const features: string[] = Array.isArray(plan.features)
+                                  ? plan.features
+                                  : typeof plan.features === 'string'
+                                  ? JSON.parse(plan.features || '[]')
+                                  : [];
+
+                                return (
+                                  <TableRow key={plan.id || pIdx}>
+                                    <TableCell>
+                                      <Badge variant="subtle" tone="accent" size="sm">
+                                        {plan.name}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Text styleKey="caption1" weight={400}>
+                                        {plan.price ? `$${plan.price}` : 'Free'}
+                                        {plan.period ? ` / ${plan.period}` : ''}
+                                      </Text>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Group gap={6} wrap="wrap">
+                                        {features.map((f, fIdx) => (
+                                          <Badge key={fIdx} variant="outline" tone="neutral" size="sm">
+                                            {f}
+                                          </Badge>
+                                        ))}
+                                      </Group>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </div>
+                    )}
+                  </Stack>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </Stack>
+
+      {/* Xenon Confirmation Dialog for Deletion */}
+      {/* @ts-expect-error Xenon WebDialogProps typings omit children in declaration */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}>
+        <DialogContent style={{ maxWidth: '440px', padding: '24px' }}>
+          <DialogHeader>
+            <DialogTitle>Remove Competitor</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove{' '}
+              <span style={{ color: 'var(--x-text)', fontWeight: 400 }}>
+                {deleteTarget ? extractDomain(deleteTarget.url) : 'this competitor'}
+              </span>
+              ? Autonomous snapshot collection and historical visual diffs for this domain will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter style={{ marginTop: '20px' }}>
+            <Group gap={8} justify="flex-end">
+              <DialogClose asChild>
+                <Button variant="ghost" size="sm">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button variant="destructive" size="sm" onClick={confirmDelete}>
+                <Icon size="sm">
+                  <Trash weight="thin" />
+                </Icon>
+                Delete Competitor
+              </Button>
+            </Group>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

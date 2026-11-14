@@ -20,6 +20,28 @@ export function useAlerts() {
     }
   }, []);
 
+  // Initial load
+  useEffect(() => {
+    let isMounted = true;
+    fetchAlerts(true)
+      .then((data) => {
+        if (isMounted) {
+          setAlerts(data);
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (isMounted) {
+          if (err instanceof Error) setError(err.message);
+          else setError(String(err));
+          setLoading(false);
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // === MUTATIONS (Write-only) ===
   const markAsReadMutation = async (id: string) => {
     try {
