@@ -12,6 +12,7 @@ import { AutomationModule } from './automation/automation.module.js';
 import { AlertsModule } from './alerts/alerts.module.js';
 import { PricingModule } from './pricing/pricing.module.js';
 import { ScreenshotsModule } from './screenshots/screenshots.module.js';
+import { BattlecardModule } from './battlecard/battlecard.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ScreenshotsModule } from './screenshots/screenshots.module.js';
     AlertsModule,
     PricingModule,
     ScreenshotsModule,
+    BattlecardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

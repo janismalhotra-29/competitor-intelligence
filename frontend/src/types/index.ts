@@ -93,3 +93,37 @@ export type ExecutiveReport = {
   generatedAt: string;
   reportMarkdown: string;
 };
+
+export type CompetitorBenchmarkSummary = {
+  id: string;
+  url: string;
+  domain: string;
+  headline: string;
+  velocity: 'HIGH' | 'MODERATE' | 'LOW';
+  totalChanges: number;
+  totalSnapshots: number;
+  lastChecked: string | null;
+  pricingTiers: {
+    name: string;
+    price: string | null;
+    period: string | null;
+    features: string[];
+  }[];
+};
+
+export type FeatureMatrixItem = {
+  feature: string;
+  availability: Record<string, boolean>;
+};
+
+export type BattlecardPayload = {
+  generatedAt: string;
+  totalCompetitors: number;
+  mostActiveCompetitor: string;
+  lowestEntryPrice: string;
+  totalTrackedFeatures: number;
+  competitors: CompetitorBenchmarkSummary[];
+  featureMatrix: FeatureMatrixItem[];
+  strategicSummary: string;
+  markdownReport: string;
+};

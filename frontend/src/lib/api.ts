@@ -94,5 +94,13 @@ export async function fetchExecutiveReport(competitorId: string) {
   return res.json();
 }
 
+export async function fetchBattlecard(): Promise<import('@/types').BattlecardPayload> {
+  const res = await fetch(`${API_URL}/benchmark/battlecard`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Failed to fetch competitive battlecard');
+  return res.json();
+}
+
 
 

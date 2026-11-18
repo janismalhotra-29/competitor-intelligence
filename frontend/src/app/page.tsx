@@ -30,6 +30,7 @@ import { CommandPaletteModal } from '@/components/dashboard/CommandPaletteModal'
 import { VisualDiffGallery } from '@/components/diffs/VisualDiffGallery';
 import { PricingMatrix } from '@/components/pricing/PricingMatrix';
 import { AlertsTrail } from '@/components/alerts/AlertsTrail';
+import { CompetitiveBattlecard } from '@/components/battlecard/CompetitiveBattlecard';
 import { useCompetitors } from '@/hooks/useCompetitors';
 import { useAlerts } from '@/hooks/useAlerts';
 
@@ -195,6 +196,9 @@ export default function Home() {
               <TabsTrigger value="competitors" icon={<Globe weight="thin" />}>
                 Competitors ({queries.competitors.length})
               </TabsTrigger>
+              <TabsTrigger value="battlecard" icon={<Lightning weight="thin" />}>
+                Battlecard ⚡
+              </TabsTrigger>
               <TabsTrigger value="diffs" icon={<GitDiff weight="thin" />}>
                 Visual Changes ({totalChanges})
               </TabsTrigger>
@@ -223,6 +227,13 @@ export default function Home() {
                   onInspectDiff={queries.loadChangeDiff}
                   onDownloadReport={queries.downloadReport}
                 />
+              </div>
+            </TabsContent>
+
+            {/* TAB 2: AI Competitive Battlecard & Benchmarking Engine */}
+            <TabsContent value="battlecard">
+              <div style={{ marginTop: '20px' }}>
+                <CompetitiveBattlecard />
               </div>
             </TabsContent>
 
