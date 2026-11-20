@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as dns from 'dns';
 import { CompetitorsService } from './competitors.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
@@ -8,6 +9,7 @@ describe('CompetitorsService', () => {
   let prismaMock: any;
 
   beforeEach(() => {
+    vi.spyOn(dns.promises, 'lookup').mockResolvedValue([{ address: '93.184.216.34', family: 4 }] as any);
     prismaMock = {
       competitor: {
         create: vi.fn(),

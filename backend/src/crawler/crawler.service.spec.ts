@@ -1,10 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { vi } from 'vitest';
+import * as dns from 'dns';
 import { CrawlerService } from './crawler.service.js';
 
 describe('CrawlerService', () => {
   let service: CrawlerService;
 
   beforeEach(async () => {
+    vi.spyOn(dns.promises, 'lookup').mockResolvedValue([{ address: '93.184.216.34', family: 4 }] as any);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [CrawlerService],
     }).compile();
@@ -17,11 +21,23 @@ describe('CrawlerService', () => {
   });
 
   it('should collect a valid public URL', async () => {
-    const result = await service.crawlPublicPage('https://example.com');
-    expect(result.status).toBe('SUCCESS');
-    expect(result.url).toBe('https://example.com');
-    expect(result.pageTitle).toContain('Example Domain');
-    expect(result.extractedText).toBeDefined();
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('robots.txt')) {
+        return new Response('User-agent: *\nAllow: /', { status: 200 });
+      }
+      return new Response('<html><head><title>Example Domain</title></head><body>This domain is for use in examples.</body></html>', { status: 200 });
+    }) as any;
+
+    try {
+      const result = await service.crawlPublicPage('https://example.com');
+      expect(result.status).toBe('SUCCESS');
+      expect(result.url).toBe('https://example.com');
+      expect(result.pageTitle).toContain('Example Domain');
+      expect(result.extractedText).toBeDefined();
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 
   it('should immediately reject SSRF attempts to localhost/private IP', async () => {

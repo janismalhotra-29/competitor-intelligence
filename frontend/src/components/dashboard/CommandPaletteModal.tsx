@@ -9,6 +9,7 @@ import {
   CurrencyDollar,
   Bell,
   ArrowClockwise,
+  Lightning,
 } from '@phosphor-icons/react';
 import type { Competitor } from '@/types';
 
@@ -68,6 +69,21 @@ export function CommandPaletteModal({
       onSelect: () => {
         onOpenChange(false);
         onSelectTab('competitors');
+      },
+    },
+    {
+      id: 'nav-battlecard',
+      label: 'Go to AI Competitive Battlecard & Benchmarking',
+      group: 'Navigation',
+      icon: (
+        <Icon size="sm">
+          <Lightning weight="thin" />
+        </Icon>
+      ),
+      shortcut: '⌘B',
+      onSelect: () => {
+        onOpenChange(false);
+        onSelectTab('battlecard');
       },
     },
     {
